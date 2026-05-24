@@ -315,13 +315,6 @@ def slide_2_hook(prs):
         size=24,
         color=WHITE,
     )
-    # Divider
-    div = s.shapes.add_shape(
-        MSO_SHAPE.RECTANGLE, MARGIN_L, Emu(4600000), Emu(1200000), Emu(30000)
-    )
-    div.line.fill.background()
-    div.fill.solid()
-    div.fill.fore_color.rgb = AMBER
 
     add_text_box(
         s,
@@ -975,32 +968,38 @@ def slide_12_discussion(prs):
         "Staggered entry buys time, not safety; long-run equilibrium is unchanged",
         "A 9x acceleration means by the time politicians notice, it is already too late",
     ]
+    # Bullets get the left half; image gets the right half. Clean gap between.
+    text_w = Emu(6500000)
     add_bullets(
         s,
         MARGIN_L,
-        Emu(1600000),
-        Emu(7800000),
+        Emu(1700000),
+        text_w,
         Emu(5000000),
         bullets,
-        size=20,
+        size=18,
         line_spacing=1.5,
     )
 
-    # Inset: scenario comparison figure
+    # Inset: scenario comparison figure on the right half
     img_path = FIG_DIR / "fig_scenario_compare.png"
     if img_path.exists():
         from PIL import Image
         with Image.open(img_path) as im:
             w_px, h_px = im.size
-        max_w = Emu(4500000)
-        max_h = Emu(3800000)
+        # Right column starts after text column + 500000 gap
+        right_col_left = Emu(MARGIN_L + text_w + Emu(500000))
+        right_col_width = Emu(SLIDE_W - int(right_col_left) - 600000)
+        max_w = right_col_width
+        max_h = Emu(4200000)
         aspect = w_px / h_px
         tw = int(max_w)
         th = int(tw / aspect)
         if th > int(max_h):
             th = int(max_h)
             tw = int(th * aspect)
-        left = Emu(SLIDE_W - 700000 - tw)
+        # Center horizontally in the right column
+        left = Emu(int(right_col_left) + (int(right_col_width) - tw) // 2)
         top = Emu(1700000)
         s.shapes.add_picture(str(img_path), left, top, width=Emu(tw), height=Emu(th))
         add_text_box(s, left, Emu(top + th + 50000), Emu(tw), Emu(400000),
