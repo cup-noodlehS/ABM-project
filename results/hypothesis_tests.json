@@ -1,0 +1,29 @@
+{
+  "H1": {
+    "n_runs": 50,
+    "frac_reaching_critical": 1.0,
+    "mean_years": 6.074520547945205,
+    "std_years": 0.8434159847433567,
+    "p_lt_8yr": 1.4956014750419697e-21,
+    "p_gt_5yr": 2.8620065821207717e-12,
+    "verdict": "supported"
+  },
+  "H2": {
+    "n_runs_with_crossing": 50,
+    "median_pre_rate_per_year": 0.07079620191030325,
+    "median_post_rate_per_year": 0.6628301912716414,
+    "median_rate_ratio_post_over_pre": 9.245515636133671,
+    "median_crossing_year": 5.682191780821918,
+    "paired_t": 209.30612566628707,
+    "paired_p": 2.7128403796692226e-74,
+    "verdict": "supported"
+  },
+  "H3": {
+    "mean_A_years": 6.074520547945205,
+    "mean_C_years": 10.0,
+    "delay_fraction": 0.6462204582356126,
+    "welch_t": 32.91060627456601,
+    "welch_p": 2.250978578250372e-35,
+    "verdict": "supported"
+  }
+}

@@ -1,0 +1,200 @@
+\documentclass[sigconf,nonacm,natbib=true,authoryear]{acmart}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+
+\setcopyright{none}
+\settopmatter{printacmref=false, printccs=false, printfolios=true}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+\citestyle{acmauthoryear}
+
+\begin{document}
+
+\title[PARCHED: AI Drinks Your Town Dry]{PARCHED: When AI Drinks Your Town Dry\\An Agent-Based Model of Hyperscaler Water Competition in a Shared Basin}
+
+\author{Sheldon Arthur Sagrado}
+\authornote{Both authors contributed equally. SAS led model implementation and statistical analysis; JED led the paper and presentation. Both reviewed all artifacts.}
+\email{sheldon@example.edu}
+\affiliation{%
+  \institution{University of the Philippines Cebu}
+  \city{Cebu City}
+  \country{Philippines}
+}
+
+\author{Jed Edison Donaire}
+\authornotemark[1]
+\email{jed@example.edu}
+\affiliation{%
+  \institution{University of the Philippines Cebu}
+  \city{Cebu City}
+  \country{Philippines}
+}
+
+\renewcommand{\shortauthors}{Sagrado and Donaire}
+
+\begin{abstract}
+Hyperscale data centers consume large volumes of fresh water for evaporative cooling, yet they are typically sited and permitted as if each facility were an isolated load on an inexhaustible resource. We present PARCHED, an agent-based model implemented in Mesa that simulates daily competition for a shared water basin among four data center operators, two agricultural users, a residential community, and a regulator. The model includes a positive-feedback loop in which basin stress increases cooling demand, and a nonlinear recharge penalty that captures aquifer disconnection at low storage. We evaluate four scenarios: unregulated growth, a reactive cap triggered at 30 percent basin level, a proactive industrial budget enforced from day zero, and a staggered entry schedule. Across 50 replicates per scenario, unregulated growth reaches critical stress in a mean of 6.07 years; the decline rate accelerates 9.25 times after crossing the 40 percent threshold; the proactive policy delays critical stress by 65 percent and is the only regime in which farms retain full area. The reactive policy is statistically indistinguishable from no policy at all, because by the time the trigger fires the cooling-stress feedback has already locked in collapse. We argue that hyperscaler siting decisions should be evaluated at the basin level, not the facility level, and that any reactive trigger should be raised to at least 50 percent basin storage.
+\end{abstract}
+
+\keywords{agent-based modeling, water resources, data centers, hyperscalers, common-pool resources, policy simulation}
+
+\maketitle
+
+\section{Introduction}
+
+Hyperscale data centers have become the single fastest-growing class of industrial water user in many inland regions \citep{li2023thirsty,google2023environmental}. A single 50 MW facility using evaporative cooling can consume on the order of one million liters of fresh water per day, and the largest reported operators draw billions of liters per year across their fleets \citep{microsoft2022environmental}. Because cooling water is sourced from local utilities or aquifers, the marginal cost to the operator is small relative to capital expenditure on compute, and water has historically not been a binding constraint on siting decisions \citep{shehabi2016usreport,bauer2019hyperscale}.
+
+This calculus assumes that each facility is the only large industrial user on its basin. The assumption fails when multiple hyperscalers cluster around the same fiber, power, and tax-incentive geographies, since these are the same geographies that already host irrigated agriculture and growing residential populations. The resulting competition is a common-pool resource problem with three features that make it analytically difficult: (i) cooling demand is not exogenous with respect to basin level, because hotter and drier conditions both stress the basin and increase the cooling load; (ii) aquifer recharge is nonlinear near low storage; and (iii) regulatory response is delayed by measurement and political process.
+
+We address these features with an agent-based model called PARCHED. The model places four data center operators, two agricultural users, one aggregate residential community, and one regulator on a shared basin. Agents are blind to each other and interact only through the basin. We use the model to test three hypotheses derived from the policy literature and to evaluate four candidate policy regimes. Our main contribution is quantitative: we show that a reactive policy with a 30 percent trigger is functionally equivalent to no policy at all, and that proactive basin-level budgeting is the only regime that preserves agricultural and residential service over a ten-year horizon.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/fig_simulation_screenshot.png}
+  \caption{Model schematic. Four data center operators, two farms, and a residential community draw from a shared water basin. A regulator can issue caps; natural recharge replenishes the basin. All inter-agent interaction is mediated by the basin.}
+  \label{fig:schematic}
+\end{figure}
+
+\section{Related Works}
+
+The data center water footprint literature has, until recently, focused on facility-level metrics such as water usage effectiveness. \citet{li2023thirsty} catalogued operational and embodied water for large language model training and inference and argued that water reporting lags carbon reporting by roughly a decade. The Lawrence Berkeley analysis of \citet{shehabi2016usreport} and the recalibration by \citet{masanet2020recalibrating} provide the energy baseline against which cooling-water draw scales. Corporate sustainability disclosures from \citet{google2023environmental} and \citet{microsoft2022environmental} confirm year-on-year increases in absolute withdrawals despite improvements in per-query intensity.
+
+A separate strand of work, rooted in hydrology, treats agricultural water competition as the canonical common-pool problem. \citet{mekonnen2016sustainability} estimated blue water footprints for crops globally and documented that a large fraction of irrigated production occurs in basins already operating beyond their sustainable yield. \citet{hogeboom2020bluehydro} extended this accounting to electricity generation, which is itself a hidden water demand of data centers. We adopt the basin-as-resource framing from this tradition but add an industrial agent class whose demand co-varies with basin stress.
+
+The agent-based modeling literature offers a vocabulary for describing such systems. \citet{grimm2005individual} and the updated ODD protocol of \citet{grimm2020odd} provide the structural template we follow in the Methods section. To our knowledge, prior ABM work on data center siting has been confined to electricity markets; we are not aware of a published ABM that explicitly couples hyperscaler cooling demand to basin storage with a positive-feedback term.
+
+\section{Materials and Methods}
+
+We describe the model following the ODD protocol of \citet{grimm2020odd}: purpose, entities, process overview, design concepts, initialization, input data, and submodels.
+
+\subsection{Purpose}
+The model is intended to compare four water-allocation policy regimes on a shared basin shared by four hyperscale data centers, two farms, and a residential community, over a ten-year horizon. It is not calibrated to a specific real basin; rather, parameters are chosen to produce the canonical 5 to 8 year collapse window reported in the gray literature, so that policy comparisons are meaningful within that window.
+
+\subsection{Entities, State Variables, and Scales}
+The simulation runs at a daily tick (1 tick = 1 day) for up to 3650 ticks (10 years) or until the basin falls below 5 percent of capacity, which we treat as an irreversible threshold. Five entity classes are instantiated.
+
+\textbf{WaterBasin.} Capacity 30{,}000 ML (30 BL), initial level 80 percent of capacity. Natural recharge is sinusoidal, mean 50 ML/day with seasonal amplitude 25 ML/day. Critical threshold is 20 percent level; tipping point is 40 percent level (see Submodels).
+
+\textbf{DataCenterOperator.} Four instances by default (one per quadrant). Facility size 20 to 50 MW. Daily water-draw rate is driven by a seasonal cooling load and a positive-feedback amplification term: when the basin level falls below the stress threshold, cooling demand rises as $(1 + 4 \cdot s)$ where $s$ is the fractional shortfall below the threshold. Capacity expands on a fixed 270-tick schedule (approximately 9 months), reflecting exogenous compute demand. Expansion is irreversible.
+
+\textbf{ResidentialCommunity.} Single aggregate agent. Population 100{,}000, draw 150 L/person/day. Files a complaint when basin drops below 40 percent.
+
+\textbf{AgriculturalUser.} Two instances with irrigated area 500 to 2000 ha each. Daily demand is sinusoidal with a growing-season offset; peak draw is 12{,}000 to 15{,}000 L/ha/day. A farm permanently fallows if it experiences 30 consecutive days of cut irrigation.
+
+\textbf{Regulator.} Single agent with \texttt{policy\_mode} in \{off, reactive, proactive, staggered\}. The reactive mode activates caps when the basin drops below 30 percent, with a stochastic delay of 2 to 4 ticks. The proactive mode enforces a hard industrial draw cap of 15 ML/day from $t=0$.
+
+\subsection{Process Overview and Scheduling}
+At each tick, agents are activated in random order. Each agent computes its requested draw based on its internal state and the current basin level reported at the previous tick. The basin then applies a priority-ordered allocation rule (community $\rightarrow$ data center $\rightarrow$ farm) subject to a daily extraction cap of $\max(2R, 0.012L)$, where $R$ is the current recharge and $L$ is the basin level. Recharge is added, the nonlinear penalty is applied if storage is low, and metrics are recorded.
+
+\subsection{Design Concepts}
+\textit{Emergence.} The collapse trajectory is not programmed; it emerges from the interaction of expansion schedules, cooling-stress feedback, and recharge nonlinearity. \textit{Sensing.} Agents observe only the basin level reported to them; they do not observe each other. \textit{Stochasticity.} Sources of randomness include seasonal recharge noise, regulator delay, expansion timing jitter, and farm growing-season offsets. \textit{Observation.} We log basin level, per-agent withdrawals, complaints, and farm area at every tick.
+
+\subsection{Initialization}
+The basin starts at 80 percent of capacity. All four data centers begin at the low end of their MW range. Both farms begin at full area. The regulator begins inactive in all scenarios except scenario C (proactive), where it is already enforcing the cap.
+
+\subsection{Input Data}
+The model takes no external time-series input. All forcing is generated procedurally.
+
+\subsection{Submodels}
+
+\textit{Cooling-stress amplification.} For each data center, the daily draw is
+\[
+d_t = d_{\text{base}}(t) \cdot \bigl(1 + \alpha \cdot \max(0, \tfrac{L_{\text{stress}} - L_t}{L_{\text{stress}}})\bigr),
+\]
+where $\alpha = 4.0$ and $L_{\text{stress}}$ is set to 40 percent of capacity. This term captures the empirical observation that hotter, drier conditions both stress the basin and raise the cooling load.
+
+\textit{Recharge penalty.} When the basin drops below 30 percent, the recharge multiplier is
+\[
+m = 1 - 0.05 \cdot \tfrac{0.3 - \ell}{0.3},
+\]
+where $\ell$ is the fractional level. This is a coarse proxy for aquifer disconnection at low storage.
+
+\textit{Allocation rule.} Strict priority community $\rightarrow$ data center $\rightarrow$ farm, with the daily cap above to enforce physical hydraulic limits.
+
+\subsection{Scenarios}
+We compare four scenarios. \textbf{A. Unregulated growth} (\texttt{policy\_mode=off}). \textbf{B. Reactive regulation} (\texttt{policy\_mode=reactive}, triggers at 30 percent with 2 to 4 day delay). \textbf{C. Proactive water budget} (\texttt{policy\_mode=proactive}, industrial cap 15 ML/day from $t=0$). \textbf{D. Staggered entry} (four DCs enter at years 0, 2, 4, 6). Each scenario was run 50 times with independent seeds.
+
+\section{Results and Discussion}
+
+\subsection{H1: Unregulated growth depletes the basin within 5 to 8 years}
+
+Under scenario A, all 50 of 50 runs reached critical stress (basin below 20 percent). The mean time-to-critical was 6.07 years with a standard deviation of 0.84 years, and a median of 5.88 years. A one-sample $t$-test against the upper bound of the hypothesized window (8 years) gives $t < 0$ with $p = 1.50 \times 10^{-21}$. The hypothesis is supported: the basin not only depletes within the predicted window, it depletes earlier than the upper bound with high confidence.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/fig_basin_timeseries.png}
+  \caption{Basin level over time, mean with 95\% confidence interval, by scenario. Scenarios A and B collapse on near-identical trajectories. Scenario D delays collapse. Scenario C plateaus above the critical threshold.}
+  \label{fig:basin}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/fig_time_to_stress.png}
+  \caption{Time-to-critical-stress by scenario. Boxplots over 50 replicates per scenario. C is censored at the simulation horizon since no run crashed.}
+  \label{fig:time}
+\end{figure}
+
+\subsection{H2: Decline is nonlinear near the 40 percent threshold}
+
+We classified each daily observation from scenario A by whether the basin was above or below 40 percent on that day, and computed the decline rate in level fraction per year for each segment of each trajectory. The median decline rate before crossing was 0.071 per year. After crossing, the median rate was 0.663 per year, a 9.25-fold acceleration. The median crossing year was 5.68. A paired $t$-test on the within-trajectory difference gives $t = 209.3$, $p = 2.71 \times 10^{-74}$. The hypothesis is supported.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/fig_tipping_point.png}
+  \caption{Tipping-point analysis for a representative run. The vertical line marks the day the basin crosses 40 percent. The pre-crossing slope is shallow; the post-crossing slope is roughly 9.2 times steeper.}
+  \label{fig:tipping}
+\end{figure}
+
+The mechanism is the cooling-stress amplification term. Once basin level drops past 40 percent, the multiplier on data center draw exceeds 1 and grows linearly with the shortfall; data center draw rises just as recharge is also penalized, producing the visible knee in the trajectory.
+
+\subsection{H3: Proactive budgeting delays collapse by more than 40 percent}
+
+Under scenario C, none of 50 runs reached critical stress within the 10-year horizon; we therefore record time-to-critical as 10.0 years (right-censored). The mean delay relative to scenario A is from 6.07 to 10.0 years, a fractional delay of 65 percent (well above the 40 percent threshold in the hypothesis). A Welch $t$-test against scenario A gives $t = 32.9$, $p = 2.25 \times 10^{-35}$. The hypothesis is supported, with the caveat that the true delay is at least 65 percent and may be larger if the simulation horizon were extended.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/fig_scenario_compare.png}
+  \caption{Cross-scenario comparison on four metrics: time to critical stress, minimum basin level, mean farm yield loss, and total community complaints. Proactive (C) dominates on all four.}
+  \label{fig:compare}
+\end{figure}
+
+\subsection{Auxiliary findings}
+
+\textit{Reactive is no better than off.} Scenarios A and B produced identical mean time-to-critical (6.07 years in both) and statistically indistinguishable farm-yield-loss distributions. The 30 percent trigger fires after the cooling-stress feedback has already taken over, so by the time the cap is enforced, demand reduction from the cap is more than offset by stress-driven demand increase. We regard this as the most policy-relevant single finding of the study: a permitting regime that only acts when the basin is already two-thirds drawn is functionally equivalent to no permitting regime.
+
+\textit{Staggered entry buys time but not equilibrium.} Scenario D delayed mean time-to-critical to 9.12 years, but 84 percent of runs still crashed before the horizon. Spreading capacity additions over six years changes the timing of the inevitable; it does not change the equilibrium that emerges once all four facilities are at full capacity.
+
+\textit{Proactive uniquely preserves service.} Scenario C is the only regime in which farms retain full area (0 percent mean yield loss) and the community files zero complaints over the full horizon.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/fig_yield_loss.png}
+  \caption{Farm yield-loss distribution by scenario. Scenarios A and B cluster near 97 percent yield loss. Scenario D shows a long tail (some runs survive, most do not). Scenario C is absent because no farm experienced yield loss.}
+  \label{fig:yield}
+\end{figure}
+
+\subsection{Limitations}
+The parameters are synthetic, calibrated to produce the canonical collapse window rather than tuned to a specific real basin. We model a single basin and do not allow inter-basin trade or alternative sourcing such as reuse or trucked water. The regulator has perfect basin observability after its delay, whereas real-world basin measurement is itself imperfect and often contested. Climate drift is not modeled; recharge mean is stationary over the horizon. Finally, data center demand is treated as exogenous; in reality price elasticity, contract terms, and corporate water targets all couple back to draw, and that coupling could moderate the collapse we report here. None of these limitations changes the qualitative ranking of the four scenarios, but they do warn against reading the headline numbers as forecasts.
+
+\section{Conclusion and Recommendation}
+
+PARCHED is a deliberately small ABM that asks one question: when several hyperscale data centers share a basin with farms and a community, can a sensible-looking reactive policy avoid collapse? The answer in our setting is no. A 30 percent trigger fires too late, because by then the cooling-stress feedback has already amplified draw beyond what any cap can recover. Only a proactive basin-level budget preserves service across the horizon, and only by a wide margin.
+
+We make four recommendations, in declining order of confidence:
+
+\begin{enumerate}
+  \item Permit at the basin, not the facility. Aggregate industrial draw should be capped before any individual permit is granted, and new permits should be denied once the aggregate cap is reached.
+  \item Require cross-operator disclosure to the regulator. Per-facility self-reporting allows aggregate draw to remain invisible to the entity charged with managing the basin.
+  \item Stress-test new hyperscaler sitings with a basin-scale ABM as part of the environmental impact assessment. The model in this paper is small enough that a stress test could be produced in hours, not months.
+  \item If a reactive trigger is the only politically feasible instrument, set it at 50 percent or higher. By 30 percent the cooling-stress feedback is already running, and the cap arrives too late to matter.
+\end{enumerate}
+
+The headline number is uncomfortable: a basin shared by four hyperscalers reaches critical stress in six years under unregulated growth, and a reactive policy that fires at 30 percent provides no protection at all. The good news is that the proactive remedy is cheap to specify, cheap to simulate, and produces a clean separation in outcomes. The remaining question is political, not technical.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

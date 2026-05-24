@@ -1,0 +1,8 @@
+mesa>=3.0,<4.0
+networkx>=3.2
+numpy>=1.26
+pandas>=2.1
+scipy>=1.12
+matplotlib>=3.8
+seaborn>=0.13
+python-pptx>=1.0
