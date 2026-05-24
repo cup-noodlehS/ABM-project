@@ -1,6 +1,6 @@
 """Build PARCHED_final.pptx - light-theme 16:9 deck for CMSC 176 final project.
 
-Claude design language: warm paper background, single burnt-orange accent,
+Editorial light theme: warm paper background, single deep-maroon accent,
 serif headers paired with sans-serif body. Run from release/presentation/
 with the release/model/.venv activated.
 """
@@ -25,7 +25,7 @@ OUT_PATH = THIS_DIR / "PARCHED_final.pptx"
 PAPER = RGBColor(0xFA, 0xF9, 0xF5)   # warm off-white background
 INK = RGBColor(0x1F, 0x1E, 0x1D)     # near-black body
 MUTED = RGBColor(0x60, 0x5E, 0x5B)   # warm gray caption/source
-ACCENT = RGBColor(0xC1, 0x5F, 0x3C)  # Claude burnt-orange, use sparingly
+ACCENT = RGBColor(0x7B, 0x2D, 0x26)  # deep maroon, use sparingly
 RULE = RGBColor(0xE8, 0xE4, 0xDC)    # subtle divider (avoid using under titles)
 
 # Fonts
@@ -89,12 +89,12 @@ def add_text_box(
     return tb
 
 
-# Motif: small orange tick square to the LEFT of every slide title.
+# Motif: small maroon tick square to the LEFT of every slide title.
 TICK_SIZE = Emu(110000)  # ~0.12 inch
 
 
 def add_title(slide, text: str, *, size: int = 36, top: int = None) -> None:
-    """Slide title in serif with a small orange square motif to its left."""
+    """Slide title in serif with a small maroon square motif to its left."""
     if top is None:
         top = int(MARGIN_T)
     # Tick square, vertically aligned near the cap-height of the title text.
@@ -139,7 +139,7 @@ def add_bullets(
     color: RGBColor = INK,
     line_spacing: float = 1.35,
 ):
-    """Body bullets in sans-serif, with a small orange middle-dot bullet."""
+    """Body bullets in sans-serif, with a small maroon middle-dot bullet."""
     tb = slide.shapes.add_textbox(left, top, width, height)
     tf = tb.text_frame
     tf.word_wrap = True
@@ -153,7 +153,7 @@ def add_bullets(
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.alignment = PP_ALIGN.LEFT
         p.line_spacing = line_spacing
-        # bullet marker (small orange middle dot)
+        # bullet marker (small maroon middle dot)
         marker = p.add_run()
         marker.text = "·  "
         marker.font.name = SANS
