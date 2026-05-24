@@ -95,6 +95,60 @@ python build_deck.py
 
 Side finding: scenarios A (unregulated) and B (reactive cap at 30% basin) produced statistically identical outcomes. By the time the reactive trigger fires, the cooling-stress feedback has already locked in the collapse. A 30%-threshold reactive policy is functionally equivalent to no policy at all.
 
+## Interactive visualization
+
+Live app: **https://jed08-parched.hf.space**
+
+Hosted on Hugging Face Spaces (Docker). The app runs the Mesa simulation in a browser — pick a scenario, adjust parameters, and watch the basin drain in real time.
+
+### Run locally
+
+```bash
+cd model
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt solara altair
+solara run app.py --port 8765
+# open http://localhost:8765
+```
+
+### Deploy changes to Hugging Face
+
+The live app is served from a separate HF Spaces repo. After making changes to any of the three model files (`app.py`, `parched_model.py`, `scenarios.py`), sync them to the deployment repo and push:
+
+```bash
+# 1. Clone the HF Space (first time only)
+git clone https://huggingface.co/spaces/Jed08/parched ~/hf-space
+
+# 2. Copy changed files
+cp model/app.py          ~/hf-space/
+cp model/parched_model.py ~/hf-space/
+cp model/scenarios.py    ~/hf-space/
+cp model/requirements.txt ~/hf-space/   # only if deps changed
+cp model/Dockerfile      ~/hf-space/    # only if Dockerfile changed
+
+# 3. Commit and push (use an HF token with Write access)
+cd ~/hf-space
+git add .
+git commit -m "describe your change"
+git push https://Jed08:<HF_TOKEN>@huggingface.co/spaces/Jed08/parched main
+```
+
+Get or regenerate your HF token at https://huggingface.co/settings/tokens (Write access required).
+
+HF rebuilds the Docker image automatically after each push — takes ~2-3 minutes. Watch build logs at https://huggingface.co/spaces/Jed08/parched.
+
+### Deployment file reference
+
+| File | Purpose |
+|---|---|
+| `model/app.py` | Solara dashboard — all charts, KPI cards, controls |
+| `model/parched_model.py` | Mesa model + agent classes |
+| `model/scenarios.py` | Scenario A/B/C/D config factories |
+| `model/requirements.txt` | Python dependencies |
+| `model/Dockerfile` | Container definition for HF Spaces |
+
 ## Repository
 
-GitHub: [`cup-noodlehS/ABM-project`](https://github.com/cup-noodlehS/ABM-project)
+GitHub: [`cup-noodlehS/ABM-project`](https://github.com/cup-noodlehS/ABM-project)  
+Live app: [`Jed08/parched`](https://huggingface.co/spaces/Jed08/parched)
