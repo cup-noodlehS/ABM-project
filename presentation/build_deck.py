@@ -1,6 +1,8 @@
-"""Build PARCHED_final.pptx - dark-theme 16:9 deck for CMSC 176 final project.
+"""Build PARCHED_final.pptx - light-theme 16:9 deck for CMSC 176 final project.
 
-Run from the release/presentation/ directory with the release/model/.venv activated.
+Claude design language: warm paper background, single burnt-orange accent,
+serif headers paired with sans-serif body. Run from release/presentation/
+with the release/model/.venv activated.
 """
 from __future__ import annotations
 
@@ -19,24 +21,25 @@ RELEASE_DIR = THIS_DIR.parent
 FIG_DIR = RELEASE_DIR / "figures"
 OUT_PATH = THIS_DIR / "PARCHED_final.pptx"
 
-# Theme colors
-NAVY = RGBColor(0x0B, 0x14, 0x26)
-WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-TEAL = RGBColor(0x3E, 0xE6, 0xC5)
-AMBER = RGBColor(0xE6, 0xA5, 0x32)
-RED = RGBColor(0xD9, 0x51, 0x4E)
-BLUE = RGBColor(0x6F, 0x9C, 0xEB)
-MUTED = RGBColor(0xB6, 0xC2, 0xD9)
+# Claude palette (use ONLY these)
+PAPER = RGBColor(0xFA, 0xF9, 0xF5)   # warm off-white background
+INK = RGBColor(0x1F, 0x1E, 0x1D)     # near-black body
+MUTED = RGBColor(0x60, 0x5E, 0x5B)   # warm gray caption/source
+ACCENT = RGBColor(0xC1, 0x5F, 0x3C)  # Claude burnt-orange, use sparingly
+RULE = RGBColor(0xE8, 0xE4, 0xDC)    # subtle divider (avoid using under titles)
 
-FONT = "Calibri"
+# Fonts
+SERIF = "Georgia"
+SANS = "Helvetica Neue"
 
 # Slide dimensions (16:9)
 SLIDE_W = 13333333
 SLIDE_H = 7500000
 
-# Margins
+# Generous margins (~0.75 inch)
 MARGIN_L = Emu(700000)
 MARGIN_T = Emu(500000)
+MARGIN_R = Emu(700000)
 CONTENT_W = Emu(SLIDE_W - 1400000)
 
 
@@ -47,16 +50,6 @@ def set_background(slide, color: RGBColor) -> None:
     fill.fore_color.rgb = color
 
 
-def add_accent_bar(slide) -> None:
-    """Thin teal accent bar on the left edge."""
-    bar = slide.shapes.add_shape(
-        MSO_SHAPE.RECTANGLE, Emu(0), Emu(0), Emu(110000), Emu(SLIDE_H)
-    )
-    bar.line.fill.background()
-    bar.fill.solid()
-    bar.fill.fore_color.rgb = TEAL
-
-
 def add_text_box(
     slide,
     left,
@@ -65,12 +58,13 @@ def add_text_box(
     height,
     text: str,
     *,
-    size: int = 20,
-    color: RGBColor = WHITE,
+    size: int = 16,
+    color: RGBColor = INK,
     bold: bool = False,
+    italic: bool = False,
     align=PP_ALIGN.LEFT,
     anchor=MSO_ANCHOR.TOP,
-    font_name: str = FONT,
+    font_name: str = SANS,
 ):
     tb = slide.shapes.add_textbox(left, top, width, height)
     tf = tb.text_frame
@@ -90,21 +84,46 @@ def add_text_box(
         run.font.name = font_name
         run.font.size = Pt(size)
         run.font.bold = bold
+        run.font.italic = italic
         run.font.color.rgb = color
     return tb
 
 
-def add_title(slide, text: str, *, color: RGBColor = WHITE, size: int = 36) -> None:
+# Motif: small orange tick square to the LEFT of every slide title.
+TICK_SIZE = Emu(110000)  # ~0.12 inch
+
+
+def add_title(slide, text: str, *, size: int = 36, top: int = None) -> None:
+    """Slide title in serif with a small orange square motif to its left."""
+    if top is None:
+        top = int(MARGIN_T)
+    # Tick square, vertically aligned near the cap-height of the title text.
+    # 1 pt = 12700 EMU. Offset down about 40% of font size to center on cap-height.
+    tick_top = top + int(size * 12700 * 0.45)
+    tick = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE,
+        MARGIN_L,
+        Emu(tick_top),
+        TICK_SIZE,
+        TICK_SIZE,
+    )
+    tick.line.fill.background()
+    tick.fill.solid()
+    tick.fill.fore_color.rgb = ACCENT
+
+    title_left = Emu(int(MARGIN_L) + int(TICK_SIZE) + 180000)
+    title_width = Emu(int(CONTENT_W) - int(TICK_SIZE) - 180000)
     add_text_box(
         slide,
-        MARGIN_L,
-        MARGIN_T,
-        CONTENT_W,
-        Emu(800000),
+        title_left,
+        Emu(top),
+        title_width,
+        Emu(900000),
         text,
         size=size,
-        color=color,
+        color=INK,
         bold=True,
+        font_name=SERIF,
     )
 
 
@@ -116,11 +135,11 @@ def add_bullets(
     height,
     bullets,
     *,
-    size: int = 20,
-    color: RGBColor = WHITE,
-    bullet_color: RGBColor = TEAL,
-    line_spacing: float = 1.25,
+    size: int = 16,
+    color: RGBColor = INK,
+    line_spacing: float = 1.35,
 ):
+    """Body bullets in sans-serif, with a small orange middle-dot bullet."""
     tb = slide.shapes.add_textbox(left, top, width, height)
     tf = tb.text_frame
     tf.word_wrap = True
@@ -134,33 +153,48 @@ def add_bullets(
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.alignment = PP_ALIGN.LEFT
         p.line_spacing = line_spacing
-        # bullet marker
+        # bullet marker (small orange middle dot)
         marker = p.add_run()
-        marker.text = "▸  "  # right-pointing triangle
-        marker.font.name = FONT
+        marker.text = "·  "
+        marker.font.name = SANS
         marker.font.size = Pt(size)
         marker.font.bold = True
-        marker.font.color.rgb = bullet_color
+        marker.font.color.rgb = ACCENT
         # bullet text
         run = p.add_run()
         run.text = item
-        run.font.name = FONT
+        run.font.name = SANS
         run.font.size = Pt(size)
         run.font.color.rgb = color
     return tb
 
 
 def add_footer(slide, slide_no: int, total: int) -> None:
+    # Bottom-left: project shortname
+    add_text_box(
+        slide,
+        MARGIN_L,
+        Emu(SLIDE_H - 380000),
+        Emu(2500000),
+        Emu(300000),
+        "PARCHED",
+        size=9,
+        color=MUTED,
+        align=PP_ALIGN.LEFT,
+        font_name=SANS,
+    )
+    # Bottom-right: slide number / total
     add_text_box(
         slide,
         Emu(SLIDE_W - 2200000),
-        Emu(SLIDE_H - 450000),
-        Emu(1800000),
-        Emu(350000),
-        f"PARCHED   |   {slide_no} / {total}",
-        size=10,
+        Emu(SLIDE_H - 380000),
+        Emu(1500000),
+        Emu(300000),
+        f"{slide_no} / {total}",
+        size=9,
         color=MUTED,
         align=PP_ALIGN.RIGHT,
+        font_name=SANS,
     )
 
 
@@ -172,14 +206,13 @@ def set_speaker_notes(slide, text: str) -> None:
 def new_slide(prs: Presentation):
     blank = prs.slide_layouts[6]  # blank
     slide = prs.slides.add_slide(blank)
-    set_background(slide, NAVY)
-    add_accent_bar(slide)
+    set_background(slide, PAPER)
     return slide
 
 
 def add_image_centered(slide, image_path: Path, top_emu: int, max_w_emu: int, max_h_emu: int):
     """Add an image scaled to fit within max_w x max_h, centered horizontally."""
-    from PIL import Image  # bundled with python-pptx via Pillow
+    from PIL import Image
 
     with Image.open(image_path) as im:
         w_px, h_px = im.size
@@ -201,77 +234,104 @@ def add_image_centered(slide, image_path: Path, top_emu: int, max_w_emu: int, ma
 
 def slide_1_title(prs):
     s = new_slide(prs)
-    # Decorative subtitle band
+    # Eyebrow label
     add_text_box(
         s,
         MARGIN_L,
-        Emu(1600000),
+        Emu(1500000),
         CONTENT_W,
         Emu(300000),
         "CMSC 176, FINAL PROJECT",
-        size=14,
-        color=TEAL,
+        size=11,
+        color=ACCENT,
         bold=True,
+        font_name=SANS,
     )
+    # Big serif title (left-aligned)
     add_text_box(
         s,
         MARGIN_L,
-        Emu(2000000),
+        Emu(1900000),
         CONTENT_W,
-        Emu(1400000),
-        "PARCHED: When AI Drinks Your Town Dry",
+        Emu(1600000),
+        "PARCHED: When AI Drinks\nYour Town Dry",
         size=54,
-        color=WHITE,
+        color=INK,
         bold=True,
+        font_name=SERIF,
     )
+    # Subtitle in serif italic
     add_text_box(
         s,
         MARGIN_L,
-        Emu(3500000),
+        Emu(3850000),
         CONTENT_W,
-        Emu(700000),
+        Emu(600000),
         "An Agent-Based Model of Hyperscaler Water Competition",
-        size=24,
+        size=22,
         color=MUTED,
+        font_name=SERIF,
+        italic=True,
     )
-    # Divider
-    div = s.shapes.add_shape(
-        MSO_SHAPE.RECTANGLE, MARGIN_L, Emu(4400000), Emu(1200000), Emu(40000)
-    )
-    div.line.fill.background()
-    div.fill.solid()
-    div.fill.fore_color.rgb = TEAL
 
+    # Authors (sans, restrained)
     add_text_box(
         s,
         MARGIN_L,
-        Emu(4650000),
+        Emu(4900000),
         CONTENT_W,
-        Emu(500000),
-        "Sheldon Arthur Sagrado  ·  Jed Edison Donaire",
-        size=20,
-        color=WHITE,
+        Emu(420000),
+        "Sheldon Arthur Sagrado   /   Jed Edison Donaire",
+        size=16,
+        color=INK,
         bold=True,
+        font_name=SANS,
     )
     add_text_box(
         s,
         MARGIN_L,
-        Emu(5200000),
+        Emu(5300000),
         CONTENT_W,
-        Emu(400000),
-        "CMSC 176, AY 2025-2026, University of the Philippines Cebu",
-        size=16,
+        Emu(350000),
+        "smsagrado@up.edu.ph    jjdonaire@up.edu.ph",
+        size=11,
         color=MUTED,
+        font_name=SANS,
     )
     add_text_box(
         s,
         MARGIN_L,
         Emu(5650000),
         CONTENT_W,
-        Emu(400000),
-        "May 2026",
-        size=16,
+        Emu(300000),
+        "Equal contribution.",
+        size=10,
         color=MUTED,
+        italic=True,
+        font_name=SANS,
+    )
+
+    add_text_box(
+        s,
+        MARGIN_L,
+        Emu(6150000),
+        CONTENT_W,
+        Emu(350000),
+        "CMSC 176, AY 2025-2026, University of the Philippines Cebu",
+        size=11,
+        color=MUTED,
+        font_name=SANS,
+    )
+    add_text_box(
+        s,
+        MARGIN_L,
+        Emu(6480000),
+        CONTENT_W,
+        Emu(300000),
+        "May 2026",
+        size=11,
+        color=MUTED,
+        font_name=SANS,
     )
 
     set_speaker_notes(
@@ -294,48 +354,55 @@ def slide_1_title(prs):
 def slide_2_hook(prs):
     s = new_slide(prs)
     add_title(s, "The Hook")
+
+    # Hero serif stat
     add_text_box(
         s,
         MARGIN_L,
         Emu(2000000),
         CONTENT_W,
-        Emu(1800000),
+        Emu(1500000),
         "3 to 5 million liters",
-        size=88,
-        color=TEAL,
+        size=72,
+        color=ACCENT,
         bold=True,
+        font_name=SERIF,
     )
     add_text_box(
         s,
         MARGIN_L,
-        Emu(3700000),
+        Emu(3500000),
         CONTENT_W,
         Emu(500000),
-        "per day, per hyperscale data center",
-        size=24,
-        color=WHITE,
+        "per day, per hyperscale data center.",
+        size=22,
+        color=INK,
+        font_name=SERIF,
+        italic=True,
     )
-
+    # Counterpoint
     add_text_box(
         s,
         MARGIN_L,
-        Emu(4850000),
+        Emu(4700000),
         CONTENT_W,
-        Emu(900000),
+        Emu(700000),
         "And nobody is modeling the basin-level collisions.",
-        size=28,
-        color=AMBER,
+        size=22,
+        color=INK,
         bold=True,
+        font_name=SANS,
     )
     add_text_box(
         s,
         MARGIN_L,
-        Emu(5800000),
+        Emu(5500000),
         CONTENT_W,
-        Emu(900000),
-        "Source: Li et al. (2023), \"Making AI Less Thirsty\"",
-        size=14,
+        Emu(500000),
+        "Source: Li et al. (2023), \"Making AI Less Thirsty.\"",
+        size=10,
         color=MUTED,
+        font_name=SANS,
     )
 
     set_speaker_notes(
@@ -364,18 +431,19 @@ def slide_3_problem(prs):
     add_text_box(
         s,
         MARGIN_L,
-        Emu(1500000),
+        Emu(1700000),
         Emu(5800000),
         Emu(400000),
         "THE SETUP",
-        size=14,
-        color=TEAL,
+        size=11,
+        color=ACCENT,
         bold=True,
+        font_name=SANS,
     )
     add_bullets(
         s,
         MARGIN_L,
-        Emu(1950000),
+        Emu(2150000),
         Emu(5800000),
         Emu(3800000),
         [
@@ -385,31 +453,34 @@ def slide_3_problem(prs):
             "Agriculture (rainfed and irrigated fields)",
             "A regulator with delayed observability",
         ],
-        size=20,
+        size=16,
+        line_spacing=1.45,
     )
 
     # Right column: question
     add_text_box(
         s,
         Emu(7000000),
-        Emu(1500000),
+        Emu(1700000),
         Emu(5800000),
         Emu(400000),
         "THE QUESTION",
-        size=14,
-        color=AMBER,
+        size=11,
+        color=ACCENT,
         bold=True,
+        font_name=SANS,
     )
     add_text_box(
         s,
         Emu(7000000),
-        Emu(1950000),
+        Emu(2150000),
         Emu(5800000),
-        Emu(2500000),
+        Emu(2200000),
         "What happens when self-interested data centers, blind to each other, share a finite basin?",
-        size=26,
-        color=WHITE,
+        size=22,
+        color=INK,
         bold=True,
+        font_name=SERIF,
     )
     add_text_box(
         s,
@@ -418,8 +489,10 @@ def slide_3_problem(prs):
         Emu(5800000),
         Emu(1500000),
         "No coordination. No shared meter. No price signal until things break.",
-        size=18,
+        size=14,
         color=MUTED,
+        font_name=SANS,
+        italic=True,
     )
 
     set_speaker_notes(
@@ -451,23 +524,25 @@ def slide_4_objectives(prs):
     add_bullets(
         s,
         MARGIN_L,
-        Emu(2000000),
+        Emu(2100000),
         CONTENT_W,
-        Emu(4000000),
+        Emu(3500000),
         bullets,
-        size=26,
+        size=20,
         line_spacing=1.6,
     )
-    # Tag line
+    # Tag line in serif italic
     add_text_box(
         s,
         MARGIN_L,
-        Emu(6000000),
+        Emu(5800000),
         CONTENT_W,
         Emu(500000),
         "Same seeds, same shocks, different rules.",
         size=18,
-        color=TEAL,
+        color=ACCENT,
+        italic=True,
+        font_name=SERIF,
         bold=True,
     )
 
@@ -492,72 +567,68 @@ def slide_5_hypotheses(prs):
     s = new_slide(prs)
     add_title(s, "Hypotheses")
 
-    col_w = Emu(4000000)
-    gap = Emu(200000)
+    col_w = Emu(3900000)
+    gap = Emu(250000)
     left0 = MARGIN_L
-    left1 = Emu(left0 + col_w + gap)
-    left2 = Emu(left1 + col_w + gap)
-    top = Emu(1700000)
-    h = Emu(4400000)
+    left1 = Emu(int(left0) + int(col_w) + int(gap))
+    left2 = Emu(int(left1) + int(col_w) + int(gap))
+    top = Emu(1900000)
 
-    def hyp_card(left, label, color, headline, detail):
-        card = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, col_w, h)
-        card.line.color.rgb = color
-        card.line.width = Pt(1.5)
-        card.fill.solid()
-        card.fill.fore_color.rgb = RGBColor(0x12, 0x1F, 0x36)
+    def hyp_card(left, label, headline, detail):
         # Label
         add_text_box(
             s,
-            Emu(left + 250000),
-            Emu(top + 200000),
-            Emu(col_w - 500000),
-            Emu(500000),
+            left,
+            top,
+            col_w,
+            Emu(400000),
             label,
-            size=16,
-            color=color,
+            size=11,
+            color=ACCENT,
             bold=True,
+            font_name=SANS,
         )
+        # Headline in serif
         add_text_box(
             s,
-            Emu(left + 250000),
-            Emu(top + 750000),
-            Emu(col_w - 500000),
-            Emu(1500000),
+            left,
+            Emu(int(top) + 450000),
+            col_w,
+            Emu(2200000),
             headline,
-            size=22,
-            color=WHITE,
+            size=20,
+            color=INK,
             bold=True,
+            font_name=SERIF,
         )
+        # Detail in sans muted, placed close beneath the headline
         add_text_box(
             s,
-            Emu(left + 250000),
-            Emu(top + 2400000),
-            Emu(col_w - 500000),
+            left,
+            Emu(int(top) + 2350000),
+            col_w,
             Emu(1800000),
             detail,
-            size=15,
+            size=13,
             color=MUTED,
+            font_name=SANS,
         )
 
     hyp_card(
         left0,
         "H1   COLLAPSE",
-        RED,
         "Unregulated growth collapses the basin in 5 to 8 years.",
         "Critical-stress crossing under no policy, across 50 replicate runs.",
     )
     hyp_card(
         left1,
         "H2   TIPPING POINT",
-        AMBER,
         "Decline becomes nonlinear once basin storage drops below 40%.",
         "Cooling-stress positive feedback amplifies withdrawals as headroom shrinks.",
     )
     hyp_card(
         left2,
         "H3   POLICY",
-        TEAL,
         "Proactive caps delay critical stress by 40% or more.",
         "Reactive caps and staggered entry do not, once measured against matched seeds.",
     )
@@ -587,29 +658,31 @@ def slide_6_model_overview(prs):
     add_bullets(
         s,
         MARGIN_L,
-        Emu(1600000),
-        Emu(5600000),
+        Emu(1800000),
+        Emu(5400000),
         Emu(4500000),
         [
             "4 data centers (heterogeneous capacity)",
-            "2 farms (rainfed + irrigated)",
+            "2 farms (rainfed and irrigated)",
             "100k residents (consumption from demand curve)",
             "1 regulator (delayed observability)",
             "30 BL shared basin, with stochastic recharge",
             "All interactions mediated through the basin",
         ],
-        size=18,
+        size=15,
+        line_spacing=1.45,
     )
     add_text_box(
         s,
         MARGIN_L,
-        Emu(6100000),
-        Emu(5600000),
+        Emu(6000000),
+        Emu(5400000),
         Emu(400000),
-        "1 tick = 1 day   ·   10-year horizon   ·   stop on collapse",
-        size=14,
-        color=TEAL,
+        "1 tick = 1 day   /   10-year horizon   /   stop on collapse",
+        size=11,
+        color=ACCENT,
         bold=True,
+        font_name=SANS,
     )
 
     # Right: screenshot
@@ -618,8 +691,8 @@ def slide_6_model_overview(prs):
         from PIL import Image
         with Image.open(img_path) as im:
             w_px, h_px = im.size
-        max_w = Emu(6300000)
-        max_h = Emu(5000000)
+        max_w = Emu(6200000)
+        max_h = Emu(4900000)
         aspect = w_px / h_px
         tw = int(max_w)
         th = int(tw / aspect)
@@ -627,7 +700,7 @@ def slide_6_model_overview(prs):
             th = int(max_h)
             tw = int(th * aspect)
         left = Emu(SLIDE_W - 700000 - tw)
-        top = Emu(1500000 + (5000000 - th) // 2)
+        top = Emu(1700000 + (4900000 - th) // 2)
         s.shapes.add_picture(str(img_path), left, top, width=Emu(tw), height=Emu(th))
 
     set_speaker_notes(
@@ -651,73 +724,69 @@ def slide_7_parameters(prs):
     s = new_slide(prs)
     add_title(s, "Parameters and Scenarios")
 
-    # Table-like rows
     rows = [
-        ("A", "Unregulated", "No cap, no oversight", RED),
-        ("B", "Reactive cap", "Cap triggers at 30% basin storage", AMBER),
-        ("C", "Proactive cap", "15 ML/day from t=0", TEAL),
-        ("D", "Staggered entry", "DCs come online in years 0, 2, 4, 6", BLUE),
+        ("A", "Unregulated", "No cap, no oversight."),
+        ("B", "Reactive cap", "Cap triggers at 30% basin storage."),
+        ("C", "Proactive cap", "15 ML/day from t=0."),
+        ("D", "Staggered entry", "DCs come online in years 0, 2, 4, 6."),
     ]
 
-    top = 1700000
-    row_h = 700000
-    left_label = MARGIN_L
-    left_name = Emu(left_label + 800000)
-    left_desc = Emu(left_label + 3400000)
+    top0 = 1900000
+    row_h = 720000
 
-    # Header strip
-    hdr = s.shapes.add_shape(
-        MSO_SHAPE.RECTANGLE, left_label, Emu(top - 100000), Emu(SLIDE_W - 1400000), Emu(50000)
-    )
-    hdr.line.fill.background()
-    hdr.fill.solid()
-    hdr.fill.fore_color.rgb = TEAL
-
-    for i, (key, name, desc, col) in enumerate(rows):
-        y = top + 200000 + i * row_h
-        # Key chip
-        chip = s.shapes.add_shape(
-            MSO_SHAPE.OVAL, left_label, Emu(y), Emu(550000), Emu(550000)
-        )
-        chip.line.fill.background()
-        chip.fill.solid()
-        chip.fill.fore_color.rgb = col
-        # chip text
-        ctf = chip.text_frame
-        ctf.margin_left = Emu(0)
-        ctf.margin_right = Emu(0)
-        ctf.margin_top = Emu(0)
-        ctf.margin_bottom = Emu(0)
-        ctf.vertical_anchor = MSO_ANCHOR.MIDDLE
-        cp = ctf.paragraphs[0]
-        cp.alignment = PP_ALIGN.CENTER
-        cr = cp.add_run()
-        cr.text = key
-        cr.font.name = FONT
-        cr.font.size = Pt(22)
-        cr.font.bold = True
-        cr.font.color.rgb = NAVY
-
+    for i, (key, name, desc) in enumerate(rows):
+        y = top0 + i * row_h
+        # Letter in serif accent
         add_text_box(
-            s, left_name, Emu(y + 50000), Emu(2400000), Emu(500000),
-            name, size=22, color=WHITE, bold=True,
+            s,
+            MARGIN_L,
+            Emu(y),
+            Emu(550000),
+            Emu(550000),
+            key,
+            size=28,
+            color=ACCENT,
+            bold=True,
+            font_name=SERIF,
         )
+        # Scenario name
         add_text_box(
-            s, left_desc, Emu(y + 70000), Emu(8000000), Emu(500000),
-            desc, size=18, color=MUTED,
+            s,
+            Emu(int(MARGIN_L) + 800000),
+            Emu(y + 60000),
+            Emu(3000000),
+            Emu(500000),
+            name,
+            size=20,
+            color=INK,
+            bold=True,
+            font_name=SERIF,
+        )
+        # Description
+        add_text_box(
+            s,
+            Emu(int(MARGIN_L) + 4000000),
+            Emu(y + 90000),
+            Emu(8000000),
+            Emu(500000),
+            desc,
+            size=15,
+            color=MUTED,
+            font_name=SANS,
         )
 
     # Footnote
     add_text_box(
         s,
         MARGIN_L,
-        Emu(5700000),
+        Emu(5900000),
         CONTENT_W,
         Emu(900000),
         "Matched-seed design: every scenario sees the same 50 random seeds, so differences are policy, not luck.",
-        size=16,
-        color=TEAL,
-        bold=True,
+        size=14,
+        color=ACCENT,
+        italic=True,
+        font_name=SERIF,
     )
 
     set_speaker_notes(
@@ -746,8 +815,8 @@ def slide_8_use_cases(prs):
         from PIL import Image
         with Image.open(img_path) as im:
             w_px, h_px = im.size
-        max_w = Emu(8500000)
-        max_h = Emu(4800000)
+        max_w = Emu(8200000)
+        max_h = Emu(4600000)
         aspect = w_px / h_px
         tw = int(max_w)
         th = int(tw / aspect)
@@ -755,28 +824,32 @@ def slide_8_use_cases(prs):
             th = int(max_h)
             tw = int(th * aspect)
         left = Emu(700000)
-        top = Emu(1500000)
+        top = Emu(1750000)
         s.shapes.add_picture(str(img_path), left, top, width=Emu(tw), height=Emu(th))
 
     # Right column: callouts
-    cx = Emu(9500000)
+    cx = Emu(9300000)
     cw = Emu(3500000)
-    add_text_box(s, cx, Emu(1600000), cw, Emu(400000), "WHAT TO SEE", size=14, color=TEAL, bold=True)
+    add_text_box(s, cx, Emu(1800000), cw, Emu(400000), "WHAT TO SEE",
+                 size=11, color=ACCENT, bold=True, font_name=SANS)
 
-    add_text_box(s, cx, Emu(2050000), cw, Emu(400000), "A and B", size=18, color=RED, bold=True)
-    add_text_box(s, cx, Emu(2400000), cw, Emu(900000),
+    add_text_box(s, cx, Emu(2250000), cw, Emu(400000), "A and B",
+                 size=17, color=INK, bold=True, font_name=SERIF)
+    add_text_box(s, cx, Emu(2600000), cw, Emu(900000),
                  "Identical trajectory. Reactive cap fires after the cliff.",
-                 size=14, color=MUTED)
+                 size=12, color=MUTED, font_name=SANS)
 
-    add_text_box(s, cx, Emu(3450000), cw, Emu(400000), "C", size=18, color=TEAL, bold=True)
-    add_text_box(s, cx, Emu(3800000), cw, Emu(900000),
+    add_text_box(s, cx, Emu(3550000), cw, Emu(400000), "C",
+                 size=17, color=INK, bold=True, font_name=SERIF)
+    add_text_box(s, cx, Emu(3900000), cw, Emu(900000),
                  "Holds above 90% for the entire decade.",
-                 size=14, color=MUTED)
+                 size=12, color=MUTED, font_name=SANS)
 
-    add_text_box(s, cx, Emu(4800000), cw, Emu(400000), "D", size=18, color=BLUE, bold=True)
-    add_text_box(s, cx, Emu(5150000), cw, Emu(900000),
+    add_text_box(s, cx, Emu(4850000), cw, Emu(400000), "D",
+                 size=17, color=INK, bold=True, font_name=SERIF)
+    add_text_box(s, cx, Emu(5200000), cw, Emu(900000),
                  "Delays the collapse but the endpoint is unchanged.",
-                 size=14, color=MUTED)
+                 size=12, color=MUTED, font_name=SANS)
 
     set_speaker_notes(
         s,
@@ -804,8 +877,8 @@ def slide_9_h1(prs):
         from PIL import Image
         with Image.open(img_path) as im:
             w_px, h_px = im.size
-        max_w = Emu(7800000)
-        max_h = Emu(5200000)
+        max_w = Emu(7600000)
+        max_h = Emu(4900000)
         aspect = w_px / h_px
         tw = int(max_w)
         th = int(tw / aspect)
@@ -813,23 +886,29 @@ def slide_9_h1(prs):
             th = int(max_h)
             tw = int(th * aspect)
         left = Emu(700000)
-        top = Emu(1500000)
+        top = Emu(1750000)
         s.shapes.add_picture(str(img_path), left, top, width=Emu(tw), height=Emu(th))
 
-    # Right side big stat
-    cx = Emu(9000000)
-    cw = Emu(4000000)
-    add_text_box(s, cx, Emu(1700000), cw, Emu(400000), "RESULT", size=14, color=TEAL, bold=True)
-    add_text_box(s, cx, Emu(2100000), cw, Emu(1200000), "100%", size=80, color=RED, bold=True)
-    add_text_box(s, cx, Emu(3400000), cw, Emu(700000),
-                 "of unregulated runs collapsed", size=18, color=WHITE)
+    # Right column: hero stat
+    cx = Emu(8800000)
+    cw = Emu(4100000)
+    add_text_box(s, cx, Emu(1850000), cw, Emu(400000), "RESULT",
+                 size=11, color=ACCENT, bold=True, font_name=SANS)
+    add_text_box(s, cx, Emu(2250000), cw, Emu(1300000), "100%",
+                 size=72, color=ACCENT, bold=True, font_name=SERIF)
+    add_text_box(s, cx, Emu(3550000), cw, Emu(700000),
+                 "of unregulated runs collapsed.",
+                 size=16, color=INK, font_name=SERIF, italic=True)
 
-    add_text_box(s, cx, Emu(4350000), cw, Emu(600000),
-                 "Mean: 6.07 ± 0.84 years", size=22, color=WHITE, bold=True)
-    add_text_box(s, cx, Emu(5000000), cw, Emu(500000),
-                 "p < 10⁻²¹", size=20, color=TEAL, bold=True)
-    add_text_box(s, cx, Emu(5550000), cw, Emu(500000),
-                 "n = 50 replicate runs", size=14, color=MUTED)
+    add_text_box(s, cx, Emu(4500000), cw, Emu(450000),
+                 "Mean: 6.07 ± 0.84 years",
+                 size=18, color=INK, bold=True, font_name=SANS)
+    add_text_box(s, cx, Emu(5000000), cw, Emu(400000),
+                 "p < 10⁻²¹",
+                 size=14, color=MUTED, font_name=SANS)
+    add_text_box(s, cx, Emu(5450000), cw, Emu(400000),
+                 "n = 50 replicate runs",
+                 size=11, color=MUTED, font_name=SANS)
 
     set_speaker_notes(
         s,
@@ -858,8 +937,8 @@ def slide_10_h2(prs):
         from PIL import Image
         with Image.open(img_path) as im:
             w_px, h_px = im.size
-        max_w = Emu(7800000)
-        max_h = Emu(5200000)
+        max_w = Emu(7600000)
+        max_h = Emu(4900000)
         aspect = w_px / h_px
         tw = int(max_w)
         th = int(tw / aspect)
@@ -867,22 +946,28 @@ def slide_10_h2(prs):
             th = int(max_h)
             tw = int(th * aspect)
         left = Emu(700000)
-        top = Emu(1500000)
+        top = Emu(1750000)
         s.shapes.add_picture(str(img_path), left, top, width=Emu(tw), height=Emu(th))
 
-    cx = Emu(9000000)
-    cw = Emu(4000000)
-    add_text_box(s, cx, Emu(1700000), cw, Emu(400000), "ACCELERATION", size=14, color=AMBER, bold=True)
-    add_text_box(s, cx, Emu(2100000), cw, Emu(1200000), "9.25×", size=80, color=AMBER, bold=True)
-    add_text_box(s, cx, Emu(3400000), cw, Emu(700000),
-                 "decline rate after 40% threshold", size=16, color=WHITE)
+    cx = Emu(8800000)
+    cw = Emu(4100000)
+    add_text_box(s, cx, Emu(1850000), cw, Emu(400000), "ACCELERATION",
+                 size=11, color=ACCENT, bold=True, font_name=SANS)
+    add_text_box(s, cx, Emu(2250000), cw, Emu(1300000), "9.25×",
+                 size=72, color=ACCENT, bold=True, font_name=SERIF)
+    add_text_box(s, cx, Emu(3550000), cw, Emu(700000),
+                 "decline rate after the 40% threshold.",
+                 size=14, color=INK, font_name=SERIF, italic=True)
 
-    add_text_box(s, cx, Emu(4250000), cw, Emu(400000),
-                 "Pre-tipping: 0.07 / yr", size=18, color=MUTED)
-    add_text_box(s, cx, Emu(4700000), cw, Emu(400000),
-                 "Post-tipping: 0.66 / yr", size=18, color=WHITE, bold=True)
-    add_text_box(s, cx, Emu(5300000), cw, Emu(500000),
-                 "p < 10⁻⁷⁴", size=20, color=TEAL, bold=True)
+    add_text_box(s, cx, Emu(4400000), cw, Emu(400000),
+                 "Pre-tipping: 0.07 / yr",
+                 size=15, color=MUTED, font_name=SANS)
+    add_text_box(s, cx, Emu(4850000), cw, Emu(400000),
+                 "Post-tipping: 0.66 / yr",
+                 size=15, color=INK, bold=True, font_name=SANS)
+    add_text_box(s, cx, Emu(5450000), cw, Emu(400000),
+                 "p < 10⁻⁷⁴",
+                 size=14, color=MUTED, font_name=SANS)
 
     set_speaker_notes(
         s,
@@ -912,8 +997,8 @@ def slide_11_h3(prs):
         from PIL import Image
         with Image.open(img_path) as im:
             w_px, h_px = im.size
-        max_w = Emu(7000000)
-        max_h = Emu(5200000)
+        max_w = Emu(6800000)
+        max_h = Emu(4900000)
         aspect = w_px / h_px
         tw = int(max_w)
         th = int(tw / aspect)
@@ -921,23 +1006,30 @@ def slide_11_h3(prs):
             th = int(max_h)
             tw = int(th * aspect)
         left = Emu(700000)
-        top = Emu(1500000)
+        top = Emu(1750000)
         s.shapes.add_picture(str(img_path), left, top, width=Emu(tw), height=Emu(th))
 
-    cx = Emu(8200000)
-    cw = Emu(4800000)
-    add_text_box(s, cx, Emu(1600000), cw, Emu(400000), "PROACTIVE CAP", size=14, color=TEAL, bold=True)
-    add_text_box(s, cx, Emu(2000000), cw, Emu(900000), "+65%", size=64, color=TEAL, bold=True)
-    add_text_box(s, cx, Emu(3000000), cw, Emu(400000),
-                 "delay in critical stress onset", size=15, color=MUTED)
+    cx = Emu(8000000)
+    cw = Emu(5000000)
+    add_text_box(s, cx, Emu(1800000), cw, Emu(400000), "PROACTIVE CAP",
+                 size=11, color=ACCENT, bold=True, font_name=SANS)
+    add_text_box(s, cx, Emu(2200000), cw, Emu(1100000), "+65%",
+                 size=60, color=ACCENT, bold=True, font_name=SERIF)
+    add_text_box(s, cx, Emu(3200000), cw, Emu(400000),
+                 "delay in critical stress onset.",
+                 size=13, color=MUTED, font_name=SANS)
 
-    add_text_box(s, cx, Emu(3700000), cw, Emu(400000), "REACTIVE CAP", size=14, color=RED, bold=True)
-    add_text_box(s, cx, Emu(4100000), cw, Emu(900000), "+0%", size=64, color=RED, bold=True)
-    add_text_box(s, cx, Emu(5100000), cw, Emu(400000),
-                 "indistinguishable from no policy", size=15, color=MUTED)
+    add_text_box(s, cx, Emu(3900000), cw, Emu(400000), "REACTIVE CAP",
+                 size=11, color=MUTED, bold=True, font_name=SANS)
+    add_text_box(s, cx, Emu(4300000), cw, Emu(1100000), "+0%",
+                 size=60, color=INK, bold=True, font_name=SERIF)
+    add_text_box(s, cx, Emu(5300000), cw, Emu(400000),
+                 "indistinguishable from no policy.",
+                 size=13, color=MUTED, font_name=SANS)
 
-    add_text_box(s, cx, Emu(5700000), cw, Emu(500000),
-                 "p < 10⁻³⁵", size=18, color=TEAL, bold=True)
+    add_text_box(s, cx, Emu(5850000), cw, Emu(400000),
+                 "p < 10⁻³⁵",
+                 size=14, color=MUTED, font_name=SANS)
 
     set_speaker_notes(
         s,
@@ -963,48 +1055,46 @@ def slide_12_discussion(prs):
     add_title(s, "Discussion: What The Model Says")
 
     bullets = [
-        "Self-reporting is insufficient; basin-level visibility is essential",
-        "Reactive policy at conventional thresholds is structurally equivalent to no policy",
-        "Staggered entry buys time, not safety; long-run equilibrium is unchanged",
-        "A 9x acceleration means by the time politicians notice, it is already too late",
+        "Self-reporting is insufficient. Basin-level visibility is essential.",
+        "Reactive policy at conventional thresholds is structurally equivalent to no policy.",
+        "Staggered entry buys time, not safety. Long-run equilibrium is unchanged.",
+        "A 9x acceleration means by the time politicians notice, it is already too late.",
     ]
-    # Bullets get the left half; image gets the right half. Clean gap between.
-    text_w = Emu(6500000)
+    # Wider text column so bullets do not wrap mid-clause.
+    text_w = Emu(6700000)
     add_bullets(
         s,
         MARGIN_L,
-        Emu(1700000),
+        Emu(1900000),
         text_w,
-        Emu(5000000),
+        Emu(4800000),
         bullets,
-        size=18,
+        size=14,
         line_spacing=1.5,
     )
 
-    # Inset: scenario comparison figure on the right half
+    # Inset image on the right, shrunk to fit the narrower right column.
     img_path = FIG_DIR / "fig_scenario_compare.png"
     if img_path.exists():
         from PIL import Image
         with Image.open(img_path) as im:
             w_px, h_px = im.size
-        # Right column starts after text column + 500000 gap
-        right_col_left = Emu(MARGIN_L + text_w + Emu(500000))
-        right_col_width = Emu(SLIDE_W - int(right_col_left) - 600000)
+        right_col_left = Emu(int(MARGIN_L) + int(text_w) + 400000)
+        right_col_width = Emu(SLIDE_W - int(right_col_left) - 700000)
         max_w = right_col_width
-        max_h = Emu(4200000)
+        max_h = Emu(4100000)
         aspect = w_px / h_px
         tw = int(max_w)
         th = int(tw / aspect)
         if th > int(max_h):
             th = int(max_h)
             tw = int(th * aspect)
-        # Center horizontally in the right column
         left = Emu(int(right_col_left) + (int(right_col_width) - tw) // 2)
-        top = Emu(1700000)
+        top = Emu(2000000)
         s.shapes.add_picture(str(img_path), left, top, width=Emu(tw), height=Emu(th))
-        add_text_box(s, left, Emu(top + th + 50000), Emu(tw), Emu(400000),
-                     "Scenario comparison (A/B/C/D)",
-                     size=12, color=MUTED, align=PP_ALIGN.CENTER)
+        add_text_box(s, left, Emu(int(top) + th + 80000), Emu(tw), Emu(400000),
+                     "Scenario comparison (A / B / C / D)",
+                     size=10, color=MUTED, align=PP_ALIGN.CENTER, font_name=SANS)
 
     set_speaker_notes(
         s,
@@ -1029,14 +1119,13 @@ def slide_13_limitations(prs):
     s = new_slide(prs)
     add_title(s, "Limitations and Future Work")
 
-    # Two columns
-    add_text_box(s, MARGIN_L, Emu(1600000), Emu(6000000), Emu(400000),
-                 "LIMITATIONS", size=14, color=AMBER, bold=True)
+    add_text_box(s, MARGIN_L, Emu(1800000), Emu(5900000), Emu(400000),
+                 "LIMITATIONS", size=11, color=ACCENT, bold=True, font_name=SANS)
     add_bullets(
         s,
         MARGIN_L,
-        Emu(2050000),
-        Emu(6000000),
+        Emu(2250000),
+        Emu(5900000),
         Emu(4500000),
         [
             "Synthetic parameters (calibrated, not validated against a specific basin)",
@@ -1046,17 +1135,16 @@ def slide_13_limitations(prs):
             "Demand is exogenous",
             "Ag yield loss simplified: below threshold = dead",
         ],
-        size=16,
-        bullet_color=AMBER,
-        line_spacing=1.3,
+        size=13,
+        line_spacing=1.4,
     )
 
-    add_text_box(s, Emu(7100000), Emu(1600000), Emu(5700000), Emu(400000),
-                 "FUTURE WORK", size=14, color=TEAL, bold=True)
+    add_text_box(s, Emu(7100000), Emu(1800000), Emu(5700000), Emu(400000),
+                 "FUTURE WORK", size=11, color=ACCENT, bold=True, font_name=SANS)
     add_bullets(
         s,
         Emu(7100000),
-        Emu(2050000),
+        Emu(2250000),
         Emu(5700000),
         Emu(4500000),
         [
@@ -1067,9 +1155,8 @@ def slide_13_limitations(prs):
             "Endogenous demand response (price elasticity)",
             "Calibrate to a real candidate basin",
         ],
-        size=16,
-        bullet_color=TEAL,
-        line_spacing=1.3,
+        size=13,
+        line_spacing=1.4,
     )
 
     set_speaker_notes(
@@ -1094,56 +1181,64 @@ def slide_14_conclusion(prs):
     s = new_slide(prs)
     add_title(s, "Conclusion and Q&A")
 
-    add_text_box(s, MARGIN_L, Emu(1600000), CONTENT_W, Emu(400000),
-                 "THREE TAKEAWAYS", size=14, color=TEAL, bold=True)
+    add_text_box(s, MARGIN_L, Emu(1800000), CONTENT_W, Emu(400000),
+                 "THREE TAKEAWAYS", size=11, color=ACCENT, bold=True, font_name=SANS)
 
     takeaways = [
-        ("1", "Unregulated AI growth collapses shared basins on a 5 to 8 year timeline.", RED),
-        ("2", "The collapse is nonlinear. Late warnings will not help.", AMBER),
-        ("3", "Proactive caps work. Reactive caps do not.", TEAL),
+        ("1", "Unregulated AI growth collapses shared basins on a 5 to 8 year timeline."),
+        ("2", "The collapse is nonlinear. Late warnings will not help."),
+        ("3", "Proactive caps work. Reactive caps do not."),
     ]
-    top0 = 2100000
-    for i, (num, text, col) in enumerate(takeaways):
+    top0 = 2300000
+    for i, (num, text) in enumerate(takeaways):
         y = top0 + i * 800000
-        # Number chip
-        chip = s.shapes.add_shape(MSO_SHAPE.OVAL, MARGIN_L, Emu(y), Emu(520000), Emu(520000))
-        chip.line.fill.background()
-        chip.fill.solid()
-        chip.fill.fore_color.rgb = col
-        ctf = chip.text_frame
-        ctf.vertical_anchor = MSO_ANCHOR.MIDDLE
-        cp = ctf.paragraphs[0]
-        cp.alignment = PP_ALIGN.CENTER
-        cr = cp.add_run()
-        cr.text = num
-        cr.font.name = FONT
-        cr.font.size = Pt(22)
-        cr.font.bold = True
-        cr.font.color.rgb = NAVY
+        # Number in serif accent
+        add_text_box(
+            s,
+            MARGIN_L,
+            Emu(y),
+            Emu(550000),
+            Emu(600000),
+            num,
+            size=32,
+            color=ACCENT,
+            bold=True,
+            font_name=SERIF,
+        )
+        # Takeaway in serif
+        add_text_box(
+            s,
+            Emu(int(MARGIN_L) + 700000),
+            Emu(y + 70000),
+            Emu(SLIDE_W - 2200000),
+            Emu(600000),
+            text,
+            size=20,
+            color=INK,
+            bold=True,
+            font_name=SERIF,
+        )
 
-        add_text_box(s, Emu(MARGIN_L + 750000), Emu(y + 60000),
-                     Emu(SLIDE_W - 2200000), Emu(600000), text,
-                     size=22, color=WHITE, bold=True)
-
-    # Big closing line
+    # Closing pull-quote in serif italic
     add_text_box(
         s,
         MARGIN_L,
-        Emu(5000000),
+        Emu(5050000),
         CONTENT_W,
-        Emu(1100000),
+        Emu(1000000),
         "\"If you want to keep the water on, you have to cap the draw before anyone asks you to.\"",
-        size=24,
-        color=TEAL,
-        bold=True,
+        size=20,
+        color=ACCENT,
+        italic=True,
+        font_name=SERIF,
     )
 
-    add_text_box(s, MARGIN_L, Emu(6300000), CONTENT_W, Emu(400000),
+    add_text_box(s, MARGIN_L, Emu(6200000), CONTENT_W, Emu(400000),
                  "Code and data: github.com/cup-noodlehS/ABM-project",
-                 size=14, color=MUTED)
-    add_text_box(s, MARGIN_L, Emu(6700000), CONTENT_W, Emu(400000),
+                 size=11, color=MUTED, font_name=SANS)
+    add_text_box(s, MARGIN_L, Emu(6600000), CONTENT_W, Emu(400000),
                  "Thank you. Questions?",
-                 size=18, color=WHITE, bold=True)
+                 size=16, color=INK, bold=True, font_name=SANS)
 
     set_speaker_notes(
         s,
@@ -1191,7 +1286,6 @@ def build():
     for fn in builders:
         fn(prs)
 
-    # Footers (added after so we know the total)
     total = len(prs.slides)
     for i, slide in enumerate(prs.slides, start=1):
         add_footer(slide, i, total)
