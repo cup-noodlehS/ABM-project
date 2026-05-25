@@ -506,12 +506,11 @@ model_params = {
 
 # -----------------------------------------------------------------------
 # Assemble the page
+# Each browser session gets its own model instance via the class + model_params pattern.
 # -----------------------------------------------------------------------
 
-model = ParchedVizModel()
-
 page = SolaraViz(
-    model,
+    ParchedVizModel,
     components=[
         DashboardHeader,
         BasinGauge,
