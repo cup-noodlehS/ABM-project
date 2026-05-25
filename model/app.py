@@ -127,6 +127,8 @@ SCENARIO_LABELS = {
 def DashboardHeader(model):
     """Top-row KPI cards."""
     update_counter.get()
+    if isinstance(model, type) or model is None:
+        return
 
     tick = model.tick
     year = tick / 365.0
@@ -184,6 +186,8 @@ def _kpi_card(line1, line2, bg):
 def BasinGauge(model):
     """Horizontal progress bar showing current basin level with thresholds."""
     update_counter.get()
+    if isinstance(model, type) or model is None:
+        return
 
     basin_pct = model.basin_fraction() * 100
     stress_pct = model.cfg.stress_frac * 100
@@ -223,6 +227,8 @@ def BasinGauge(model):
 def BasinTimeseriesChart(model):
     """Basin fraction over time with threshold bands."""
     update_counter.get()
+    if isinstance(model, type) or model is None:
+        return
 
     history = list(model.history)  # snapshot to avoid mid-render mutations
     if not history:
@@ -264,6 +270,8 @@ def BasinTimeseriesChart(model):
 def WaterBalanceChart(model):
     """Stacked area chart: who is drawing how much water over time."""
     update_counter.get()
+    if isinstance(model, type) or model is None:
+        return
 
     history = list(model.history)  # snapshot
     if not history:
@@ -304,6 +312,8 @@ def WaterBalanceChart(model):
 def DCCapacityChart(model):
     """DC total capacity growth over time."""
     update_counter.get()
+    if isinstance(model, type) or model is None:
+        return
 
     history = list(model.history)  # snapshot
     if not history:
@@ -343,6 +353,8 @@ def DCCapacityChart(model):
 def FarmHealthChart(model):
     """Farm irrigated area and yield loss side by side."""
     update_counter.get()
+    if isinstance(model, type) or model is None:
+        return
 
     farms = model.farms
     labels = ["Farm {}".format(i + 1) for i in range(len(farms))]
@@ -382,6 +394,8 @@ def FarmHealthChart(model):
 def AgentStatusTable(model):
     """Detailed per-agent status panel."""
     update_counter.get()
+    if isinstance(model, type) or model is None:
+        return
 
     tick = model.tick
 
