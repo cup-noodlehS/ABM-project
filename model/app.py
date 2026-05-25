@@ -224,13 +224,13 @@ def BasinTimeseriesChart(model):
     """Basin fraction over time with threshold bands."""
     update_counter.get()
 
-    if not model.history:
+    history = list(model.history)  # snapshot to avoid mid-render mutations
+    if not history:
         solara.Markdown("*Waiting for first step...*")
         return
 
-    ticks = [h["tick"] for h in model.history]
-    years = [t / 365.0 for t in ticks]
-    basin_pct = [h["basin_frac"] * 100 for h in model.history]
+    years = [h["tick"] / 365.0 for h in history]
+    basin_pct = [h["basin_frac"] * 100 for h in history]
     stress_pct = model.cfg.stress_frac * 100
     critical_pct = model.cfg.critical_frac * 100
 
@@ -265,15 +265,15 @@ def WaterBalanceChart(model):
     """Stacked area chart: who is drawing how much water over time."""
     update_counter.get()
 
-    if not model.history:
+    history = list(model.history)  # snapshot
+    if not history:
         solara.Markdown("*Waiting for first step...*")
         return
 
-    ticks = [h["tick"] for h in model.history]
-    years = [t / 365.0 for t in ticks]
-    dc_draw = [h["dc_total_draw_ml"] for h in model.history]
-    comm_draw = [h["community_received_ml"] for h in model.history]
-    farm_draw = [h["farm_total_received_ml"] for h in model.history]
+    years = [h["tick"] / 365.0 for h in history]
+    dc_draw = [h["dc_total_draw_ml"] for h in history]
+    comm_draw = [h["community_received_ml"] for h in history]
+    farm_draw = [h["farm_total_received_ml"] for h in history]
 
     fig, ax = plt.subplots(figsize=(7, 3.2))
     fig.patch.set_facecolor("#1e1e1e")
@@ -305,13 +305,13 @@ def DCCapacityChart(model):
     """DC total capacity growth over time."""
     update_counter.get()
 
-    if not model.history:
+    history = list(model.history)  # snapshot
+    if not history:
         solara.Markdown("*Waiting for first step...*")
         return
 
-    ticks = [h["tick"] for h in model.history]
-    years = [t / 365.0 for t in ticks]
-    dc_cap = [h["total_dc_capacity_ml"] for h in model.history]
+    years = [h["tick"] / 365.0 for h in history]
+    dc_cap = [h["total_dc_capacity_ml"] for h in history]
 
     fig, ax = plt.subplots(figsize=(7, 2.6))
     fig.patch.set_facecolor("#1e1e1e")
