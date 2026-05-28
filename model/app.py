@@ -156,7 +156,7 @@ def BasinTimeseries():
     bpct  = [x["basin_frac"] * 100 for x in h]
     s, c  = m.cfg.stress_frac * 100, m.cfg.critical_frac * 100
 
-    fig, ax = _fig(5.0, 2.5)
+    fig, ax = _fig(5.0, 2.65)
     ax.axhspan(0, c, color="#da3633", alpha=0.10)
     ax.axhspan(c, s, color="#bd561d", alpha=0.07)
     ax.plot(years, bpct, color="#58a6ff", lw=1.8)
@@ -180,7 +180,7 @@ def WaterAlloc():
 
     h     = list(m.history)
     years = [x["tick"] / 365 for x in h]
-    fig, ax = _fig(5.0, 2.5)
+    fig, ax = _fig(5.0, 2.65)
     ax.stackplot(
         years,
         [x["community_received_ml"]  for x in h],
@@ -209,16 +209,37 @@ def BasinGauge():
     bp = m.basin_fraction() * 100
     s, c = m.cfg.stress_frac * 100, m.cfg.critical_frac * 100
 
-    fig, ax = _fig(3.2, 1.3)
-    ax.barh(0, 100, height=0.45, color=BORDER,              edgecolor="none")
-    ax.barh(0, bp,  height=0.45, color=_status_color(bp),   edgecolor="none")
-    ax.axvline(s, color="#e3b341", lw=1.5, ls="--", label=f"Stress {s:.0f}%")
-    ax.axvline(c, color="#da3633", lw=1.5, ls="--", label=f"Crit {c:.0f}%")
-    ax.set_xlim(0, 100); ax.set_ylim(-0.5, 0.5); ax.set_yticks([])
+    # Net daily water balance
+    h_last  = m.history[-1] if m.history else None
+    net_ml  = (m.cfg.recharge_mean_ml_per_day
+               - (h_last["dc_total_draw_ml"] + h_last["community_received_ml"]
+                  + h_last["farm_total_received_ml"]) if h_last else 0)
+
+    fig, ax = _fig(3.2, 2.65)
+    ax.barh(0, 100, height=0.55, color=BORDER,            edgecolor="none")
+    ax.barh(0, bp,  height=0.55, color=_status_color(bp), edgecolor="none")
+    ax.axvline(s, color="#e3b341", lw=1.5, ls="--")
+    ax.axvline(c, color="#da3633", lw=1.5, ls="--")
+    # value label inside bar
+    ax.text(min(bp, 97), 0, f" {bp:.1f}%",
+            va="center", ha="left" if bp < 50 else "right",
+            color="white", fontsize=9, fontweight="bold")
+    # threshold labels below bar
+    ax.text(s, -0.42, f"Stress\n{s:.0f}%", ha="center", va="top",
+            color="#e3b341", fontsize=6.5)
+    ax.text(c, -0.42, f"Crit\n{c:.0f}%",  ha="center", va="top",
+            color="#da3633", fontsize=6.5)
+    # net balance annotation
+    net_color = "#3fb950" if net_ml >= 0 else "#f85149"
+    net_sign  = "+" if net_ml >= 0 else ""
+    ax.text(50, -0.82, f"Net: {net_sign}{net_ml:.1f} ML/day",
+            ha="center", va="top", color=net_color, fontsize=7)
+
+    ax.set_xlim(0, 100)
+    ax.set_ylim(-1.05, 0.55)
+    ax.set_yticks([])
     ax.xaxis.set_major_formatter(mticker.PercentFormatter())
     ax.set_title("Aquifer Gauge", color=TEXT, fontsize=9, fontweight="bold", pad=4)
-    ax.legend(fontsize=6, facecolor=SURFACE, edgecolor=BORDER, labelcolor=TEXT,
-              loc="lower right")
     fig.tight_layout(pad=0.5)
     _render(fig)
 
@@ -234,7 +255,7 @@ def FarmHealth():
     areas  = [f.current_area_ha / f.initial_area_ha * 100 for f in farms]
     losses = [f.yield_loss * 100 for f in farms]
 
-    fig, (a1, a2) = _fig(3.2, 1.8, ncols=2)
+    fig, (a1, a2) = _fig(3.2, 2.65, ncols=2)
     a1.bar(labels, areas,  color=[_status_color(p) for p in areas],  alpha=0.85)
     a1.set_ylim(0, 115)
     a1.set_title("Area %",      color=TEXT, fontsize=8, fontweight="bold", pad=3)
@@ -264,7 +285,7 @@ def DCCapacity():
     years = [x["tick"] / 365 for x in h]
     cap   = [x["total_dc_capacity_ml"] for x in h]
 
-    fig, ax = _fig(3.2, 1.8)
+    fig, ax = _fig(3.2, 2.65)
     ax.fill_between(years, cap, color="#f85149", alpha=0.18)
     ax.plot(years, cap, color="#f85149", lw=1.8)
     if m.cfg.policy_mode == "proactive":
