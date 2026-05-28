@@ -441,23 +441,23 @@ def Sidebar():
         solara.Text(text, style={
             "font-size": "9px", "font-weight": "700",
             "color": MUTED, "letter-spacing": "0.9px",
-            "text-transform": "uppercase", "margin-top": "8px",
+            "text-transform": "uppercase", "margin-top": "4px",
         })
 
     def _divider():
         solara.HTML(tag="div", style={
             "height": "1px", "background": BORDER,
-            "margin": "8px 0", "width": "100%",
+            "margin": "3px 0", "width": "100%",
         })
 
     with solara.Column(style={
-        "width":       "210px",
-        "min-width":   "210px",
-        "background":  SURFACE,
+        "width":        "210px",
+        "min-width":    "210px",
+        "background":   SURFACE,
         "border-right": f"1px solid {BORDER}",
-        "padding":     "12px 10px",
-        "overflow-y":  "auto",
-        "gap":         "4px",
+        "padding":      "8px 10px",
+        "overflow":     "hidden",
+        "gap":          "2px",
         # no explicit height — align-self:stretch fills the main body row
     }):
         _label("Scenario")
@@ -476,7 +476,7 @@ def Sidebar():
         solara.SliderInt("DC Restore %",   value=restore,    min=0,   max=150,  step=5,   on_value=set_restore)
         solara.SliderFloat("Pop Growth %/yr", value=pop_growth, min=0.0, max=4.0, step=0.5, on_value=set_pop_growth)
 
-        with solara.Row(style={"margin-top": "10px"}):
+        with solara.Row(style={"margin-top": "4px"}):
             solara.Button(
                 "↺  Apply & Reset",
                 on_click=lambda: _do_reset(scenario, seed, num_dcs, basin_pct,
@@ -571,6 +571,11 @@ def Page():
         .v-icon, .v-icon.theme--light, .v-icon.theme--dark {{ color: {TEXT} !important; }}
         .v-input__append-inner .v-icon, .v-select__append-icon {{ color: {TEXT} !important; }}
         .v-overlay-container .v-list {{ background: {SURFACE} !important; }}
+        /* Compact sidebar: kill v-input details/messages gap */
+        .v-text-field__details {{ display: none !important; min-height: 0 !important; }}
+        .v-messages {{ display: none !important; min-height: 0 !important; }}
+        .v-input__slot {{ margin-bottom: 0 !important; }}
+        .v-input {{ margin-bottom: 0 !important; padding-bottom: 0 !important; }}
         .v-list-item-title {{ color: {TEXT} !important; }}
     """)
 
