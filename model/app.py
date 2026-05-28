@@ -568,6 +568,8 @@ def Page():
         .v-select__selection--comma,
         .v-select__selection-text {{ color: {TEXT} !important; }}
         .v-input__control, .v-input input, .v-input textarea {{ color: {TEXT} !important; }}
+        .v-icon, .v-icon.theme--light, .v-icon.theme--dark {{ color: {TEXT} !important; }}
+        .v-input__append-inner .v-icon, .v-select__append-icon {{ color: {TEXT} !important; }}
         .v-overlay-container .v-list {{ background: {SURFACE} !important; }}
         .v-list-item-title {{ color: {TEXT} !important; }}
     """)
