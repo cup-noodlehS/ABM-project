@@ -1,3 +1,12 @@
+---
+title: PARCHED
+emoji: 💧
+colorFrom: blue
+colorTo: red
+sdk: docker
+pinned: false
+---
+
 # PARCHED model
 
 Mesa 3.x simulation of multiple data centers, residential users, farms, and a regulator sharing a single water basin.
