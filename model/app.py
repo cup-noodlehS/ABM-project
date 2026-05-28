@@ -41,7 +41,7 @@ _POLICY_MAP = {"A": "off", "B": "reactive", "C": "proactive", "D": "staggered"}
 
 def _make_model(scenario: str, seed: int, num_dcs: int, basin_pct: int,
                 alpha: float, recharge: float, budget: float,
-                restore: int) -> ParchedModel:
+                restore: int, pop_growth: float) -> ParchedModel:
     key    = scenario[0]
     policy = _POLICY_MAP.get(key, "off")
     cfg    = SimConfig(
@@ -53,6 +53,7 @@ def _make_model(scenario: str, seed: int, num_dcs: int, basin_pct: int,
         recharge_mean_ml_per_day=float(recharge),
         proactive_industrial_budget_ml=float(budget),
         dc_restoration_frac=restore / 100.0,
+        population_growth_rate_pct=float(pop_growth),
         label="viz_" + key,
     )
     if policy == "staggered":
@@ -68,13 +69,14 @@ _alpha     = solara.reactive(4.0)
 _recharge  = solara.reactive(50.0)
 _budget    = solara.reactive(15.0)
 _restore   = solara.reactive(0)
+_pop_growth = solara.reactive(1.0)
 
 _tick      = solara.reactive(0)       # incremented each step → triggers chart re-renders
 _playing   = solara.reactive(False)
 _version   = solara.reactive(0)       # bumped on reset to invalidate stale play loops
 _speed     = solara.reactive(1)       # 1×–20× playback multiplier
 _model     = solara.reactive(
-    _make_model("A \u2014 Unregulated", 42, 4, 80, 4.0, 50.0, 15.0, 0)
+    _make_model("A \u2014 Unregulated", 42, 4, 80, 4.0, 50.0, 15.0, 0, 1.0)
 )
 
 # ── Simulation controls ───────────────────────────────────────────────────────
@@ -118,7 +120,7 @@ def _toggle_play() -> None:
 
 def _do_reset(scenario: str, seed: int, num_dcs: int, basin_pct: int,
               alpha: float, recharge: float, budget: float,
-              restore: int) -> None:
+              restore: int, pop_growth: float) -> None:
     _playing.value = False
     _version.value += 1
     _scenario.value  = scenario
@@ -129,7 +131,8 @@ def _do_reset(scenario: str, seed: int, num_dcs: int, basin_pct: int,
     _recharge.value  = recharge
     _budget.value    = budget
     _restore.value   = restore
-    _model.value = _make_model(scenario, seed, num_dcs, basin_pct, alpha, recharge, budget, restore)
+    _pop_growth.value = pop_growth
+    _model.value = _make_model(scenario, seed, num_dcs, basin_pct, alpha, recharge, budget, restore, pop_growth)
     _tick.value  = 0
 
 # ── Chart helpers ─────────────────────────────────────────────────────────────
@@ -390,7 +393,9 @@ def AgentStatus():
         rows.append((f"DC{i+1}", f"{dc.current_capacity_ml:.1f} ML  {fill:.0f}%  {status}"))
 
     comm = m.community
-    rows.append(("Comm", f"{comm.daily_need_ml:.1f} ML/d  str:{comm.shortage_streak}d"))
+    # Derive current population from daily need (need_ml * 1e6 / L_per_cap)
+    cur_pop = int(comm.daily_need_ml * 1_000_000 / m.cfg.community_l_per_capita_per_day)
+    rows.append(("Comm", f"{comm.daily_need_ml:.2f} ML/d  pop:{cur_pop:,}"))
 
     for i, f in enumerate(m.farms):
         rows.append((f"Farm{i+1}",
@@ -422,14 +427,15 @@ def AgentStatus():
 
 @solara.component
 def Sidebar():
-    scenario,  set_scenario  = solara.use_state(_scenario.value)
-    seed,      set_seed      = solara.use_state(int(_seed.value))
-    num_dcs,   set_num_dcs   = solara.use_state(int(_num_dcs.value))
-    basin_pct, set_basin_pct = solara.use_state(int(_basin_pct.value))
-    alpha,     set_alpha     = solara.use_state(float(_alpha.value))
-    recharge,  set_recharge  = solara.use_state(float(_recharge.value))
-    budget,    set_budget    = solara.use_state(float(_budget.value))
-    restore,   set_restore   = solara.use_state(int(_restore.value))
+    scenario,   set_scenario   = solara.use_state(_scenario.value)
+    seed,       set_seed       = solara.use_state(int(_seed.value))
+    num_dcs,    set_num_dcs    = solara.use_state(int(_num_dcs.value))
+    basin_pct,  set_basin_pct  = solara.use_state(int(_basin_pct.value))
+    alpha,      set_alpha      = solara.use_state(float(_alpha.value))
+    recharge,   set_recharge   = solara.use_state(float(_recharge.value))
+    budget,     set_budget     = solara.use_state(float(_budget.value))
+    restore,    set_restore    = solara.use_state(int(_restore.value))
+    pop_growth, set_pop_growth = solara.use_state(float(_pop_growth.value))
 
     def _label(text: str):
         solara.Text(text, style={
@@ -467,13 +473,14 @@ def Sidebar():
         solara.SliderFloat("Stress α",     value=alpha,     min=0.0,  max=10.0, step=0.5, on_value=set_alpha)
         solara.SliderFloat("Recharge ML/d",value=recharge,  min=10.0, max=100.0,step=5.0, on_value=set_recharge)
         solara.SliderFloat("DC Budget ML", value=budget,    min=5.0,  max=50.0, step=1.0, on_value=set_budget)
-        solara.SliderInt("DC Restore %",  value=restore,   min=0,    max=150,  step=5,   on_value=set_restore)
+        solara.SliderInt("DC Restore %",   value=restore,    min=0,   max=150,  step=5,   on_value=set_restore)
+        solara.SliderFloat("Pop Growth %/yr", value=pop_growth, min=0.0, max=4.0, step=0.5, on_value=set_pop_growth)
 
         with solara.Row(style={"margin-top": "10px"}):
             solara.Button(
                 "↺  Apply & Reset",
                 on_click=lambda: _do_reset(scenario, seed, num_dcs, basin_pct,
-                                           alpha, recharge, budget, restore),
+                                           alpha, recharge, budget, restore, pop_growth),
                 color="primary",
                 style={"width": "100%", "font-size": "12px"},
             )

@@ -104,6 +104,11 @@ class SimConfig:
     # Microsoft/Google pledge ~1.1 (water positive). Realistic range: 0.0–1.5.
     dc_restoration_frac: float = 0.0
 
+    # Population growth rate (% per year, compound).
+    # 1.0 = 1% per year — modest urban growth. 2-3% = fast-growing city.
+    # Community daily water demand scales with population each tick.
+    population_growth_rate_pct: float = 1.0
+
     # Staggered entry (Scenario D)
     staggered_entry_ticks: tuple = (0, 730, 1460)  # year 0, 2, 4
 
@@ -204,7 +209,8 @@ class ResidentialCommunity(mesa.Agent):
     def __init__(self, model: "ParchedModel") -> None:
         super().__init__(model)
         cfg = model.cfg
-        self.daily_need_ml = cfg.community_population * cfg.community_l_per_capita_per_day / 1_000_000.0
+        self.base_daily_need_ml = cfg.community_population * cfg.community_l_per_capita_per_day / 1_000_000.0
+        self.daily_need_ml = self.base_daily_need_ml   # updated each tick
         self.shortage_streak = 0
         self.complaints = 0
         self.received_today = 0.0
@@ -212,6 +218,9 @@ class ResidentialCommunity(mesa.Agent):
         self.cumulative_shortage_days = 0
 
     def request_draw(self, tick: int) -> float:
+        # Compound population growth: demand rises each year
+        growth = (1.0 + self.model.cfg.population_growth_rate_pct / 100.0) ** (tick / 365.0)
+        self.daily_need_ml = self.base_daily_need_ml * growth
         self.requested_today = self.daily_need_ml
         return self.daily_need_ml
 
