@@ -69,6 +69,7 @@ _budget    = solara.reactive(15.0)
 _tick      = solara.reactive(0)       # incremented each step → triggers chart re-renders
 _playing   = solara.reactive(False)
 _version   = solara.reactive(0)       # bumped on reset to invalidate stale play loops
+_speed     = solara.reactive(1)       # 1×–20× playback multiplier
 _model     = solara.reactive(
     _make_model("A \u2014 Unregulated", 42, 4, 80, 4.0, 50.0, 15.0)
 )
@@ -85,7 +86,8 @@ def _do_step() -> None:
 def _play_loop(version: int) -> None:
     while _playing.value and _version.value == version:
         _do_step()
-        time.sleep(0.08)
+        delay = max(0.0, 0.08 / _speed.value)
+        time.sleep(delay)
     _playing.value = False
 
 
@@ -584,7 +586,15 @@ def Page():
             solara.Text("When AI Drinks Your Town Dry", style={
                 "font-size": "11px", "color": MUTED, "flex": "1",
             })
-            # play / step / reset controls
+            # speed slider
+            solara.Text("Speed", style={"font-size": "10px", "color": MUTED, "white-space": "nowrap"})
+            with solara.Column(style={"min-width": "110px", "max-width": "140px", "justify-content": "center"}):
+                solara.SliderInt(
+                    label="", value=_speed.value, min=1, max=20,
+                    on_value=lambda v: setattr(_speed, "value", v),
+                )
+            solara.Text(f"{_speed.value}×", style={"font-size": "11px", "color": TEXT, "min-width": "24px"})
+            # play / step controls
             solara.Button(
                 "⏸  Pause" if playing else "▶  Play",
                 on_click=_toggle_play,
