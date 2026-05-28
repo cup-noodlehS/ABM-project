@@ -563,7 +563,11 @@ def Page():
         .v-slider-thumb__surface    {{ background: {BLUE} !important; border-color: {BLUE} !important; }}
         /* Dropdown */
         .v-field {{ background: {SURFACE2} !important; }}
-        .v-field__input, .v-select__selection-text {{ color: {TEXT} !important; }}
+        .v-field__input {{ color: {TEXT} !important; }}
+        .v-select__selection,
+        .v-select__selection--comma,
+        .v-select__selection-text {{ color: {TEXT} !important; }}
+        .v-input__control, .v-input input, .v-input textarea {{ color: {TEXT} !important; }}
         .v-overlay-container .v-list {{ background: {SURFACE} !important; }}
         .v-list-item-title {{ color: {TEXT} !important; }}
     """)
