@@ -449,7 +449,7 @@ def slide_3_problem(prs):
         [
             "One shared freshwater basin (30 BL capacity)",
             "Multiple data centers competing for cooling water",
-            "Residential demand (~100k people)",
+            "Residential demand (~100k people, growing each year)",
             "Agriculture (rainfed and irrigated fields)",
             "A regulator with delayed observability",
         ],
@@ -662,12 +662,12 @@ def slide_6_model_overview(prs):
         Emu(5400000),
         Emu(4500000),
         [
-            "4 data centers (heterogeneous capacity)",
-            "2 farms (rainfed and irrigated)",
-            "100k residents (consumption from demand curve)",
-            "1 regulator (delayed observability)",
-            "30 BL shared basin, with stochastic recharge",
-            "All interactions mediated through the basin",
+            "4 data centers (heterogeneous capacity, expand every ~9 months)",
+            "2 farms (rainfed and irrigated, seasonal demand)",
+            "1 residential community (growing population, compound growth)",
+            "1 regulator (delayed observability, 4 policy modes)",
+            "30 BL shared basin, stochastic recharge + nonlinear penalty",
+            "DC water restoration: configurable replenishment fraction",
         ],
         size=15,
         line_spacing=1.45,
@@ -678,7 +678,7 @@ def slide_6_model_overview(prs):
         Emu(6000000),
         Emu(5400000),
         Emu(400000),
-        "1 tick = 1 day   /   10-year horizon   /   stop on collapse",
+        "1 tick = 1 day   /   10-year horizon   /   stop on collapse   /   live at jed08-parched.hf.space",
         size=11,
         color=ACCENT,
         bold=True,
@@ -706,16 +706,18 @@ def slide_6_model_overview(prs):
     set_speaker_notes(
         s,
         (
-            "Quick architectural tour. We have four data centers with heterogeneous capacity, "
-            "so they do not all draw the same. Two farms, one rainfed and one irrigated, "
-            "which gives us a non-DC consumer with very different demand seasonality. One "
-            "hundred thousand residents, whose draw follows a temperature-modulated demand "
-            "curve. A regulator that can issue caps but only sees the basin state with a "
-            "configurable delay. And the basin itself, thirty billion liters of usable "
-            "capacity with stochastic recharge from rainfall. One tick is one day, the model "
-            "runs for ten years or until collapse, whichever comes first. The single most "
-            "important mechanism is the cooling-stress positive feedback loop, which is what "
-            "produces the nonlinear regime, and we will see it light up in the H2 result."
+            "Quick architectural tour. We have four data centers with heterogeneous capacity "
+            "that expand on a fixed nine-month schedule, regardless of basin state. Two farms "
+            "with seasonal demand, one rainfed and one irrigated. One residential community "
+            "that starts at one hundred thousand people and grows at a configurable annual "
+            "rate, so its water need compounds over time just like a real city. A regulator "
+            "that can issue caps but only sees the basin state with a stochastic delay. And "
+            "we also model DC water restoration, where data centers return a fraction of "
+            "their daily draw to the basin via funded recharge projects, modeling real-world "
+            "water-positive pledges from operators like Microsoft and Google. One tick is one "
+            "day, the model runs for ten years or until collapse. The single most important "
+            "mechanism is the cooling-stress positive feedback loop, which produces the "
+            "nonlinear cliff we will see in H2."
         ),
     )
 
@@ -1129,10 +1131,10 @@ def slide_13_limitations(prs):
         Emu(4500000),
         [
             "Synthetic parameters (calibrated, not validated against a specific basin)",
-            "No climate-change drift",
+            "No climate-change drift in recharge mean",
             "Single basin, no inter-basin trade",
             "Regulator has perfect observability after delay",
-            "Demand is exogenous",
+            "DC demand is exogenous (compute growth not price-responsive)",
             "Ag yield loss simplified: below threshold = dead",
         ],
         size=13,
@@ -1149,11 +1151,11 @@ def slide_13_limitations(prs):
         Emu(4500000),
         [
             "Inter-basin water trade",
-            "Climate-change scenarios (drift in recharge)",
-            "Real permit-process modeling",
+            "Climate-change scenarios (drift in recharge mean)",
+            "Real permit-process modeling (political delay curves)",
             "Inter-operator contestation and bidding",
-            "Endogenous demand response (price elasticity)",
-            "Calibrate to a real candidate basin",
+            "Endogenous DC demand response (price / water cost)",
+            "Calibrate to a real candidate basin (Pacific NW, Chile)",
         ],
         size=13,
         line_spacing=1.4,
