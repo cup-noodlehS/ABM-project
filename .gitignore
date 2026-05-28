@@ -26,3 +26,7 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Playwright scratch files
+.playwright-mcp/
+*.png
