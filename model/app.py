@@ -85,9 +85,22 @@ def _do_step() -> None:
 
 def _play_loop(version: int) -> None:
     while _playing.value and _version.value == version:
-        _do_step()
-        delay = max(0.0, 0.08 / _speed.value)
-        time.sleep(delay)
+        speed = _speed.value
+        m = _model.value
+        if m is None:
+            break
+        # Run `speed` model ticks in one burst, then trigger a single redraw.
+        # This is what actually makes high speeds feel fast — fewer renders,
+        # more simulation steps per render.
+        steps_taken = 0
+        for _ in range(speed):
+            if not _playing.value or _version.value != version:
+                break
+            m.step()
+            steps_taken += 1
+        if steps_taken:
+            _tick.value += steps_taken   # one UI redraw for all steps
+        time.sleep(0.08)                 # ~12 renders/sec regardless of speed
     _playing.value = False
 
 
