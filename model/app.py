@@ -605,7 +605,7 @@ def Page():
             })
             # speed slider
             solara.Text("Speed", style={"font-size": "10px", "color": MUTED, "white-space": "nowrap"})
-            with solara.Column(style={"min-width": "110px", "max-width": "140px", "justify-content": "center"}):
+            with solara.Column(style={"min-width": "110px", "max-width": "140px", "justify-content": "center", "background": SURFACE}):
                 solara.SliderInt(
                     label="", value=_speed.value, min=1, max=40,
                     on_value=lambda v: setattr(_speed, "value", v),
