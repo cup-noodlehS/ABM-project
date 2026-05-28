@@ -497,11 +497,29 @@ def Page():
 
     # ── Kill all scrollbars and force full-page dark layout via CSS ───────────
     solara.Style(f"""
+        /* ── Force dark mode unconditionally (OS preference ignored) ─────── */
+        html {{
+            color-scheme: dark !important;
+        }}
+        @media (prefers-color-scheme: light) {{
+            html, body, .v-application, .v-application--wrap, .v-main, .v-main__wrap {{
+                background: {BG} !important;
+                color: {TEXT} !important;
+            }}
+            .v-application {{
+                --v-theme-background:    13,17,23     !important;
+                --v-theme-surface:       22,27,34     !important;
+                --v-theme-on-background: 230,237,243  !important;
+                --v-theme-on-surface:    230,237,243  !important;
+            }}
+        }}
+
         html, body {{
             overflow: hidden !important;
             height: 100% !important;
             margin: 0;
             background: {BG} !important;
+            color: {TEXT} !important;
         }}
         .v-application {{
             height: 100vh !important;
@@ -583,6 +601,61 @@ def Page():
             flex: 1;
             min-width: 0;
         }}
+
+        /* ── Vuetify dark-theme via CSS custom properties ─────────────────────
+           Vuetify 3 uses RGB triplet CSS vars for theming. Overriding them
+           here forces the dark palette without touching individual elements. */
+        .v-application {{
+            --v-theme-background:    13,17,23     !important;
+            --v-theme-surface:       22,27,34     !important;
+            --v-theme-on-background: 230,237,243  !important;
+            --v-theme-on-surface:    230,237,243  !important;
+            --v-theme-surface-variant: 28,33,40   !important;
+            --v-theme-on-surface-variant: 125,133,144 !important;
+        }}
+
+        /* Remove Vuetify's default row gutters — these create gaps between
+           flex rows when the root background is white */
+        .v-row  {{ margin:  0 !important; }}
+        .v-col,
+        [class*="v-col-"] {{ padding: 0 !important; }}
+
+        /* Cover any gap/bleed between layout rows with the dark background */
+        .v-application__wrap {{ background-color: {BG} !important; }}
+
+        /* Explicitly nuke any white background on Vuetify sheet wrappers that
+           sit between our layout rows (the solara Column gap areas) */
+        .v-theme--light.v-sheet,
+        .v-theme--light {{ background-color: {BG} !important; color: {TEXT} !important; }}
+
+        /* Slider labels */
+        .v-input .v-label,
+        .v-field-label,
+        .v-label {{
+            color: {TEXT} !important;
+            opacity: 1    !important;
+        }}
+
+        /* Slider track & thumb */
+        .v-slider-track__background {{ background: {BORDER} !important; }}
+        .v-slider-track__fill       {{ background: {BLUE}   !important; }}
+        .v-slider-thumb__surface    {{
+            background:   {BLUE} !important;
+            border-color: {BLUE} !important;
+        }}
+
+        /* Select / dropdown */
+        .v-field                 {{ background: {SURFACE2} !important; }}
+        .v-field__input,
+        .v-select__selection-text {{ color: {TEXT} !important; }}
+        .v-field__outline,
+        .v-field__outline__start,
+        .v-field__outline__end   {{ border-color: {BORDER} !important; opacity:0.5; }}
+
+        /* Dropdown menu */
+        .v-overlay-container .v-list {{ background: {SURFACE}  !important; }}
+        .v-list-item-title            {{ color:      {TEXT}     !important; }}
+        .v-list-item:hover            {{ background: {SURFACE2} !important; }}
     """)
 
     with solara.Column(style={
@@ -640,6 +713,7 @@ def Page():
             "background":    SURFACE2,
             "border-bottom": f"1px solid {BORDER}",
             "flex-shrink":   "0",
+            "width":         "100%",
         }):
             KPIRow()
 
