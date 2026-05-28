@@ -430,7 +430,7 @@ def Sidebar():
         "padding":     "12px 10px",
         "overflow-y":  "auto",
         "gap":         "4px",
-        "height":      "100%",
+        # no explicit height — align-self:stretch fills the main body row
     }):
         _label("Scenario")
         solara.Select(label="", value=scenario, values=SCENARIOS, on_value=set_scenario,
@@ -499,8 +499,47 @@ def Page():
         }}
         /* hide "This website runs on Solara" — absolutely-positioned banner */
         div[style*="position: absolute"][style*="bottom: 0"] {{ display: none !important; }}
-        /* also block the v-content from adding its own scroll */
-        .v-content__wrap {{ overflow: hidden !important; height: 100% !important; }}
+        /* kill every overflow:auto Solara injects into the content chain */
+        .v-content__wrap,
+        .v-content__wrap > div {{
+            overflow: hidden !important;
+            height: 100% !important;
+        }}
+        /* Solara's autorouter and its immediate v-sheet child must be dark
+           and fill the full viewport so no white bleeds through */
+        .solara-autorouter-content {{
+            height:     100% !important;
+            min-height: 0   !important;
+            overflow:   hidden !important;
+            background: {BG} !important;
+        }}
+        .solara-autorouter-content > .v-sheet {{
+            height:     100% !important;
+            min-height: 0   !important;
+            overflow:   hidden !important;
+            background: {BG} !important;
+            row-gap:    0   !important;
+        }}
+        /* wrapper Solara injects around FigureMatplotlib:
+           switch from height:100% (content-relative) to flex:1 (fills panel) */
+        div[style="height: 100%;"] {{
+            flex:         1 1 0% !important;
+            height:       0 !important;    /* base=0, grows via flex */
+            min-height:   0 !important;
+            width:        100% !important;
+            display:      flex !important;
+            align-items:  stretch !important;
+        }}
+        /* image: fill the wrapper completely; object-fit:contain keeps
+           aspect-ratio and the SURFACE2 letterbox is invisible (same bg) */
+        img.widget-image {{
+            width:       100% !important;
+            height:      100% !important;
+            display:     block !important;
+            object-fit:  contain !important;
+            flex:        1 1 0% !important;
+            min-height:  0 !important;
+        }}
         /* thin custom scrollbars */
         ::-webkit-scrollbar {{ width: 4px; height: 4px; }}
         ::-webkit-scrollbar-track {{ background: {BG}; }}
@@ -571,20 +610,23 @@ def Page():
             "flex":        "1",
             "overflow":    "hidden",
             "min-height":  "0",
+            "height":      "100%",  # makes height definite so children's height:100% resolves
+            "background":  BG,
             "gap":         "0",
         }):
 
             # Left sidebar
             Sidebar()
 
-            # Chart grid
+            # Chart grid — no explicit height: align-self:stretch fills the row
             with solara.Column(style={
-                "flex":       "1",
-                "overflow":   "hidden",
-                "padding":    "8px",
-                "gap":        "7px",
-                "min-width":  "0",
-                "background": BG,
+                "flex":           "1",
+                "min-height":     "0",
+                "overflow":       "hidden",
+                "padding":        "8px",
+                "gap":            "7px",
+                "min-width":      "0",
+                "background":     BG,
             }):
 
                 # Row 1 — two wide charts
