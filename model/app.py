@@ -40,7 +40,8 @@ SCENARIOS = [
 _POLICY_MAP = {"A": "off", "B": "reactive", "C": "proactive", "D": "staggered"}
 
 def _make_model(scenario: str, seed: int, num_dcs: int, basin_pct: int,
-                alpha: float, recharge: float, budget: float) -> ParchedModel:
+                alpha: float, recharge: float, budget: float,
+                restore: int) -> ParchedModel:
     key    = scenario[0]
     policy = _POLICY_MAP.get(key, "off")
     cfg    = SimConfig(
@@ -51,6 +52,7 @@ def _make_model(scenario: str, seed: int, num_dcs: int, basin_pct: int,
         cooling_stress_amplification=float(alpha),
         recharge_mean_ml_per_day=float(recharge),
         proactive_industrial_budget_ml=float(budget),
+        dc_restoration_frac=restore / 100.0,
         label="viz_" + key,
     )
     if policy == "staggered":
@@ -65,13 +67,14 @@ _basin_pct = solara.reactive(80)
 _alpha     = solara.reactive(4.0)
 _recharge  = solara.reactive(50.0)
 _budget    = solara.reactive(15.0)
+_restore   = solara.reactive(0)
 
 _tick      = solara.reactive(0)       # incremented each step → triggers chart re-renders
 _playing   = solara.reactive(False)
 _version   = solara.reactive(0)       # bumped on reset to invalidate stale play loops
 _speed     = solara.reactive(1)       # 1×–20× playback multiplier
 _model     = solara.reactive(
-    _make_model("A \u2014 Unregulated", 42, 4, 80, 4.0, 50.0, 15.0)
+    _make_model("A \u2014 Unregulated", 42, 4, 80, 4.0, 50.0, 15.0, 0)
 )
 
 # ── Simulation controls ───────────────────────────────────────────────────────
@@ -114,9 +117,10 @@ def _toggle_play() -> None:
 
 
 def _do_reset(scenario: str, seed: int, num_dcs: int, basin_pct: int,
-              alpha: float, recharge: float, budget: float) -> None:
+              alpha: float, recharge: float, budget: float,
+              restore: int) -> None:
     _playing.value = False
-    _version.value += 1                # kills any running play loop
+    _version.value += 1
     _scenario.value  = scenario
     _seed.value      = seed
     _num_dcs.value   = num_dcs
@@ -124,7 +128,8 @@ def _do_reset(scenario: str, seed: int, num_dcs: int, basin_pct: int,
     _alpha.value     = alpha
     _recharge.value  = recharge
     _budget.value    = budget
-    _model.value = _make_model(scenario, seed, num_dcs, basin_pct, alpha, recharge, budget)
+    _restore.value   = restore
+    _model.value = _make_model(scenario, seed, num_dcs, basin_pct, alpha, recharge, budget, restore)
     _tick.value  = 0
 
 # ── Chart helpers ─────────────────────────────────────────────────────────────
@@ -224,9 +229,10 @@ def BasinGauge():
     bp = m.basin_fraction() * 100
     s, c = m.cfg.stress_frac * 100, m.cfg.critical_frac * 100
 
-    # Net daily water balance
+    # Net daily water balance (recharge + restoration - all draws)
     h_last  = m.history[-1] if m.history else None
     net_ml  = (m.cfg.recharge_mean_ml_per_day
+               + (h_last["dc_restoration_ml"])
                - (h_last["dc_total_draw_ml"] + h_last["community_received_ml"]
                   + h_last["farm_total_received_ml"]) if h_last else 0)
 
@@ -423,6 +429,7 @@ def Sidebar():
     alpha,     set_alpha     = solara.use_state(float(_alpha.value))
     recharge,  set_recharge  = solara.use_state(float(_recharge.value))
     budget,    set_budget    = solara.use_state(float(_budget.value))
+    restore,   set_restore   = solara.use_state(int(_restore.value))
 
     def _label(text: str):
         solara.Text(text, style={
@@ -460,12 +467,13 @@ def Sidebar():
         solara.SliderFloat("Stress α",     value=alpha,     min=0.0,  max=10.0, step=0.5, on_value=set_alpha)
         solara.SliderFloat("Recharge ML/d",value=recharge,  min=10.0, max=100.0,step=5.0, on_value=set_recharge)
         solara.SliderFloat("DC Budget ML", value=budget,    min=5.0,  max=50.0, step=1.0, on_value=set_budget)
+        solara.SliderInt("DC Restore %",  value=restore,   min=0,    max=150,  step=5,   on_value=set_restore)
 
         with solara.Row(style={"margin-top": "10px"}):
             solara.Button(
                 "↺  Apply & Reset",
                 on_click=lambda: _do_reset(scenario, seed, num_dcs, basin_pct,
-                                           alpha, recharge, budget),
+                                           alpha, recharge, budget, restore),
                 color="primary",
                 style={"width": "100%", "font-size": "12px"},
             )

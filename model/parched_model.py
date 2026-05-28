@@ -97,6 +97,13 @@ class SimConfig:
     regulator_cap_severity: float = 0.40         # cap industrial draw to 1 - severity
     proactive_industrial_budget_ml: float = 15.0 # daily DC total ceiling for Scenario C
 
+    # Water restoration (real-world DC replenishment commitments)
+    # Fraction of daily DC draw that is returned to the basin via funded
+    # recharge projects (e.g. wetland restoration, aquifer injection).
+    # 0.0 = no restoration (default). 1.0 = DCs restore 100% of what they use.
+    # Microsoft/Google pledge ~1.1 (water positive). Realistic range: 0.0–1.5.
+    dc_restoration_frac: float = 0.0
+
     # Staggered entry (Scenario D)
     staggered_entry_ticks: tuple = (0, 730, 1460)  # year 0, 2, 4
 
@@ -400,8 +407,11 @@ class ParchedModel(mesa.Model):
 
         # 4. Update basin
         total_taken = community_received + sum(farm_received) + sum(dc_received)
+        # DC restoration: fraction of DC draw returned via funded recharge projects
+        dc_restoration = sum(dc_received) * cfg.dc_restoration_frac
         self.basin_level_ml -= total_taken
         self.basin_level_ml += seasonal_recharge(tick, cfg, self.basin_fraction())
+        self.basin_level_ml += dc_restoration
         self.basin_level_ml = max(0.0, min(self.basin_capacity_ml, self.basin_level_ml))
 
         # 5. Let agents settle (track shortages, downsize on persistent cuts)
@@ -427,6 +437,7 @@ class ParchedModel(mesa.Model):
                 "basin_frac": self.basin_fraction(),
                 "basin_level_ml": self.basin_level_ml,
                 "dc_total_draw_ml": sum(dc_received),
+                "dc_restoration_ml": dc_restoration,
                 "community_received_ml": community_received,
                 "farm_total_received_ml": sum(farm_received),
                 "community_complaints": self.community.complaints,
