@@ -1052,6 +1052,78 @@ def slide_11_h3(prs):
     )
 
 
+def slide_12_restoration_finding(prs):
+    s = new_slide(prs)
+    add_title(s, "Bonus Finding: The Restoration Threshold")
+
+    # Eyebrow
+    add_text_box(s, MARGIN_L, Emu(1700000), CONTENT_W, Emu(350000),
+                 "WHAT HAPPENS WHEN DATA CENTERS GIVE WATER BACK?",
+                 size=11, color=ACCENT, bold=True, font_name=SANS)
+
+    # Left column: story
+    col_w = Emu(5600000)
+    add_text_box(s, MARGIN_L, Emu(2150000), col_w, Emu(450000),
+                 "WITHOUT restoration (baseline):",
+                 size=15, color=INK, bold=True, font_name=SANS)
+    add_bullets(s, MARGIN_L, Emu(2600000), col_w, Emu(1100000),
+                ["Basin drains, collapses in ~6 years",
+                 "Every unregulated run fails (100%, n=50)"],
+                size=13, line_spacing=1.4)
+
+    add_text_box(s, MARGIN_L, Emu(3900000), col_w, Emu(450000),
+                 "WITH restoration (DC Restore % >= 100%):",
+                 size=15, color=ACCENT, bold=True, font_name=SANS)
+    add_bullets(s, MARGIN_L, Emu(4350000), col_w, Emu(1800000),
+                ["Basin climbs to 100% and holds -- even in Unregulated",
+                 "Net aquifer gain: +36.8 ML/day at 150% restore",
+                 "4 DCs running full capacity (47.7 ML total), zero complaints",
+                 "Population grew to 135,000 -- still fully sustained"],
+                size=13, line_spacing=1.4)
+
+    # Right column: big stat + context
+    cx = Emu(6700000)
+    cw = Emu(6000000)
+    add_text_box(s, cx, Emu(1700000), cw, Emu(400000),
+                 "THE THRESHOLD", size=11, color=ACCENT, bold=True, font_name=SANS)
+    add_text_box(s, cx, Emu(2100000), cw, Emu(1400000),
+                 "~100%", size=80, color=ACCENT, bold=True, font_name=SERIF)
+    add_text_box(s, cx, Emu(3500000), cw, Emu(700000),
+                 "restoration rate flips DCs from\naquifer drains to replenishers.",
+                 size=16, color=INK, font_name=SERIF, italic=True)
+
+    add_text_box(s, cx, Emu(4400000), cw, Emu(400000),
+                 "REAL-WORLD PARALLEL", size=11, color=ACCENT, bold=True, font_name=SANS)
+    add_bullets(s, cx, Emu(4850000), cw, Emu(1600000),
+                ["Microsoft: water-positive pledge by 2030 (replenish >100%)",
+                 "Google: replenish 120% of water consumed",
+                 "Our model quantifies the basin-level effect of that pledge"],
+                size=12, color=MUTED, line_spacing=1.35)
+
+    set_speaker_notes(
+        s,
+        (
+            "This finding came out of running the model with the DC Restore parameter turned "
+            "up. Here is the narrative. Without restoration our unregulated baseline collapses "
+            "every single run, mean six years. Now we turn on restoration, which models the "
+            "water-positive pledges that companies like Microsoft and Google have made "
+            "publicly: Microsoft wants to be water-positive by 2030, meaning it replenishes "
+            "more than it consumes. Google has committed to replenishing one hundred and "
+            "twenty percent of its consumption. We added this mechanism to the model as a "
+            "configurable fraction of daily draw that is returned to the basin each day. The "
+            "result is striking. At a hundred percent restoration, the basin stabilizes even "
+            "under the unregulated scenario. At a hundred and fifty percent, the basin fills "
+            "to capacity and the net daily aquifer change is positive thirty six point eight "
+            "megaliters per day. Four data centers running at full capacity, population grown "
+            "to one hundred and thirty five thousand, zero agricultural complaints. The policy "
+            "implication is that if restoration obligations are written into operating permits "
+            "at or above the hundred percent threshold, the regulatory policy mode becomes "
+            "secondary. The data center itself becomes a water infrastructure asset, not a "
+            "liability."
+        ),
+    )
+
+
 def slide_12_discussion(prs):
     s = new_slide(prs)
     add_title(s, "Discussion: What The Model Says")
@@ -1061,6 +1133,7 @@ def slide_12_discussion(prs):
         "Reactive policy at conventional thresholds is structurally equivalent to no policy.",
         "Staggered entry buys time, not safety. Long-run equilibrium is unchanged.",
         "A 9x acceleration means by the time politicians notice, it is already too late.",
+        "Restoration obligations >= 100% can flip a data center from threat to asset.",
     ]
     # Wider text column so bullets do not wrap mid-clause.
     text_w = Emu(6700000)
@@ -1190,10 +1263,11 @@ def slide_14_conclusion(prs):
         ("1", "Unregulated AI growth collapses shared basins on a 5 to 8 year timeline."),
         ("2", "The collapse is nonlinear. Late warnings will not help."),
         ("3", "Proactive caps work. Reactive caps do not."),
+        ("4", "Restoration >= 100% turns data centers into water assets, not liabilities."),
     ]
-    top0 = 2300000
+    top0 = 2100000
     for i, (num, text) in enumerate(takeaways):
-        y = top0 + i * 800000
+        y = top0 + i * 700000
         # Number in serif accent
         add_text_box(
             s,
@@ -1227,18 +1301,18 @@ def slide_14_conclusion(prs):
         MARGIN_L,
         Emu(5050000),
         CONTENT_W,
-        Emu(1000000),
-        "\"If you want to keep the water on, you have to cap the draw before anyone asks you to.\"",
-        size=20,
+        Emu(800000),
+        "\"If you want to keep the water on, cap the draw before anyone asks -- or make the data center pay it back.\"",
+        size=17,
         color=ACCENT,
         italic=True,
         font_name=SERIF,
     )
 
-    add_text_box(s, MARGIN_L, Emu(6200000), CONTENT_W, Emu(400000),
+    add_text_box(s, MARGIN_L, Emu(6000000), CONTENT_W, Emu(400000),
                  "Code and data: github.com/cup-noodlehS/ABM-project",
                  size=11, color=MUTED, font_name=SANS)
-    add_text_box(s, MARGIN_L, Emu(6600000), CONTENT_W, Emu(400000),
+    add_text_box(s, MARGIN_L, Emu(6450000), CONTENT_W, Emu(400000),
                  "Thank you. Questions?",
                  size=16, color=INK, bold=True, font_name=SANS)
 
@@ -1281,6 +1355,7 @@ def build():
         slide_9_h1,
         slide_10_h2,
         slide_11_h3,
+        slide_12_restoration_finding,
         slide_12_discussion,
         slide_13_limitations,
         slide_14_conclusion,
