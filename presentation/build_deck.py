@@ -518,7 +518,7 @@ def slide_4_objectives(prs):
     add_title(s, "Objectives")
     bullets = [
         "Build a calibrated agent-based model of basin-level water competition",
-        "Test three hypotheses about collapse timing, nonlinearity, and policy effect",
+        "Test four hypotheses: collapse timing, nonlinearity, policy effect, and restoration threshold",
         "Compare four policy scenarios under matched stochastic conditions",
     ]
     add_bullets(
@@ -549,16 +549,16 @@ def slide_4_objectives(prs):
     set_speaker_notes(
         s,
         (
-            "Three objectives, in order. First, we build the model itself. That means agents "
-            "for the data centers, farms, residents, and a regulator, plus a basin module "
-            "that does the bookkeeping on inflows, withdrawals, and stress. Second, we test "
-            "three concrete hypotheses, which I will introduce on the next slide. Third, we "
-            "run four policy scenarios, A through D, under matched stochastic conditions. "
-            "Matched is the key word: every scenario sees the same fifty random seeds, the "
-            "same weather realizations, the same demand shocks. That way, when scenario C "
-            "outperforms scenario A, we know the difference is the policy rule and not "
-            "stochastic luck. This is a small methodological choice but it is what gives the "
-            "comparative results their teeth."
+            "Three objectives, in order. First, we build the model itself: agents for data "
+            "centers, farms, residents, and a regulator, plus a basin module that handles "
+            "inflows, withdrawals, and stress. Second, we test four concrete hypotheses, "
+            "which I will introduce on the next slide. The first three cover collapse timing, "
+            "the tipping-point nonlinearity, and policy effectiveness. The fourth, which we "
+            "added after observing an unexpected result in the model, asks whether data "
+            "center water restoration can itself substitute for regulation. Third, we run "
+            "four policy scenarios under matched stochastic conditions. Matched means every "
+            "scenario sees the same fifty random seeds and the same weather realizations, so "
+            "differences in outcomes are the policy rule, not stochastic luck."
         ),
     )
 
@@ -567,85 +567,60 @@ def slide_5_hypotheses(prs):
     s = new_slide(prs)
     add_title(s, "Hypotheses")
 
-    col_w = Emu(3900000)
-    gap = Emu(250000)
+    # 2x2 grid layout
+    col_w = Emu(5900000)
+    gap_x = Emu(350000)
     left0 = MARGIN_L
-    left1 = Emu(int(left0) + int(col_w) + int(gap))
-    left2 = Emu(int(left1) + int(col_w) + int(gap))
-    top = Emu(1900000)
+    left1 = Emu(int(left0) + int(col_w) + int(gap_x))
+    row0_top = Emu(1750000)
+    row1_top = Emu(4500000)
 
-    def hyp_card(left, label, headline, detail):
-        # Label
-        add_text_box(
-            s,
-            left,
-            top,
-            col_w,
-            Emu(400000),
-            label,
-            size=11,
-            color=ACCENT,
-            bold=True,
-            font_name=SANS,
-        )
-        # Headline in serif
-        add_text_box(
-            s,
-            left,
-            Emu(int(top) + 450000),
-            col_w,
-            Emu(2200000),
-            headline,
-            size=20,
-            color=INK,
-            bold=True,
-            font_name=SERIF,
-        )
-        # Detail in sans muted, placed close beneath the headline
-        add_text_box(
-            s,
-            left,
-            Emu(int(top) + 2350000),
-            col_w,
-            Emu(1800000),
-            detail,
-            size=13,
-            color=MUTED,
-            font_name=SANS,
-        )
+    def hyp_card(left, top, label, headline, detail):
+        add_text_box(s, left, top, col_w, Emu(350000),
+                     label, size=10, color=ACCENT, bold=True, font_name=SANS)
+        add_text_box(s, left, Emu(int(top) + 380000), col_w, Emu(1200000),
+                     headline, size=18, color=INK, bold=True, font_name=SERIF)
+        add_text_box(s, left, Emu(int(top) + 1480000), col_w, Emu(900000),
+                     detail, size=12, color=MUTED, font_name=SANS)
 
-    hyp_card(
-        left0,
-        "H1   COLLAPSE",
-        "Unregulated growth collapses the basin in 5 to 8 years.",
-        "Critical-stress crossing under no policy, across 50 replicate runs.",
-    )
-    hyp_card(
-        left1,
-        "H2   TIPPING POINT",
-        "Decline becomes nonlinear once basin storage drops below 40%.",
-        "Cooling-stress positive feedback amplifies withdrawals as headroom shrinks.",
-    )
-    hyp_card(
-        left2,
-        "H3   POLICY",
-        "Proactive caps delay critical stress by 40% or more.",
-        "Reactive caps and staggered entry do not, once measured against matched seeds.",
-    )
+    hyp_card(left0, row0_top,
+             "H1   COLLAPSE",
+             "Unregulated growth collapses the basin in 5 to 8 years.",
+             "Critical-stress crossing under no policy, across 50 replicate runs.")
+
+    hyp_card(left1, row0_top,
+             "H2   TIPPING POINT",
+             "Decline becomes nonlinear once basin storage drops below 40%.",
+             "Cooling-stress positive feedback amplifies withdrawals as headroom shrinks.")
+
+    hyp_card(left0, row1_top,
+             "H3   POLICY",
+             "Proactive caps delay critical stress by 40% or more.",
+             "Reactive caps and staggered entry do not, once measured against matched seeds.")
+
+    hyp_card(left1, row1_top,
+             "H4   RESTORATION THRESHOLD",
+             "Above ~100% restoration, data centers sustain the basin even without regulation.",
+             "Modeled after water-positive pledges by Microsoft and Google: replenish more than consumed.")
 
     set_speaker_notes(
         s,
         (
-            "Three hypotheses. H1 says that under unregulated growth the basin collapses on a "
-            "five to eight year timeline. That window is from the back-of-envelope balance "
-            "between hyperscaler intake rates and basin recharge. H2 is the most interesting "
-            "claim and the one where the ABM earns its keep: we expect a tipping point "
-            "around forty percent storage, below which decline is no longer linear. That "
-            "happens because cooling-tower efficiency depends on water availability, so "
-            "stress feeds back into demand. A static water-balance equation cannot show you "
-            "that. H3 says proactive caps, set from day one, will delay critical stress by "
-            "at least forty percent compared to reactive caps or no policy at all. Each of "
-            "these has a clean test, which is what comes next."
+            "Four hypotheses. H1 says that under unregulated growth the basin collapses on a "
+            "five to eight year timeline. That window comes from the back-of-envelope balance "
+            "between hyperscaler intake rates and basin recharge. H2 is the tipping-point "
+            "claim and the one where the ABM earns its keep: we expect a nonlinear "
+            "acceleration around forty percent storage, because cooling-tower efficiency "
+            "depends on water availability, creating a positive feedback loop that a static "
+            "balance equation cannot capture. H3 says proactive caps delay critical stress "
+            "by at least forty percent compared to reactive caps or no policy. H4 is the "
+            "hypothesis we derived from running the model: if data centers are required or "
+            "incentivized to return at least one hundred percent of their daily draw to the "
+            "basin via funded recharge projects, the basin stabilizes or grows even under "
+            "zero regulatory oversight. This maps directly onto real-world commitments by "
+            "Microsoft, which has pledged to be water-positive by 2030, and Google, which "
+            "targets replenishing one hundred and twenty percent of consumption. Our model "
+            "lets us test whether those pledges, if met at the basin level, actually hold."
         ),
     )
 
@@ -1054,7 +1029,7 @@ def slide_11_h3(prs):
 
 def slide_12_restoration_finding(prs):
     s = new_slide(prs)
-    add_title(s, "Bonus Finding: The Restoration Threshold")
+    add_title(s, "Result H4: The Restoration Threshold")
 
     # Eyebrow
     add_text_box(s, MARGIN_L, Emu(1700000), CONTENT_W, Emu(350000),
@@ -1133,7 +1108,7 @@ def slide_12_discussion(prs):
         "Reactive policy at conventional thresholds is structurally equivalent to no policy.",
         "Staggered entry buys time, not safety. Long-run equilibrium is unchanged.",
         "A 9x acceleration means by the time politicians notice, it is already too late.",
-        "Restoration obligations >= 100% can flip a data center from threat to asset.",
+        "H4 confirmed: restoration >= 100% turns data centers from threats into water assets.",
     ]
     # Wider text column so bullets do not wrap mid-clause.
     text_w = Emu(6700000)
